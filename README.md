@@ -1,24 +1,21 @@
-#  Elektro
+&lt;p align="center"&gt;
+  &lt;b style="font-size: 48px;"&gt;⚡ ELEKTRO&lt;/b&gt;&lt;br&gt;
+  &lt;i&gt;Terminal tabanli Elektrik-Elektronik Muhendisligi araci&lt;/i&gt;
+&lt;/p&gt;
 
-Terminal tabanlı Elektrik-Elektronik Mühendisliği hesaplama aracı.
+&lt;p align="center"&gt;
+  &lt;img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python"&gt;
+  &lt;img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"&gt;
+  &lt;img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg" alt="Platform"&gt;
+&lt;/p&gt;
 
-![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)
+---
 
-## Özellikler
+## Hizli Kurulum (Kopyala & Yapistir)
 
-- **Ohm Kanunu**: İnteraktif ve parametrik hesaplama
-- **Direnç Renk Kodu**: 4/5 bantlı direnç çözümleyici (kısa kodlarla)
-- **Filtre Analizi**: RC/RL/LC/RLC/Notch filtreleri + ASCII Bode plot
-- **RF Link Budget**: ITU-R P.525-4 FSPL hesaplama + birim dönüşümleri
-- **Dijital**: Sayı sistemleri dönüşümü + Boolean doğruluk tabloları
-- **Datasheet İndirici**: Otomatik komponent datasheet bulma ve indirme
+Asagidaki komutlari sirasiyla terminale yapistir. Bitince `elektro` yaz ve calissin.
 
-## Kurulum
-
-### 1. Repoyu klonla
+### 1. Repoyu Indir
 
 ```bash
-git clone https://github.com/0anes0/elektro.git
-cd elektro
+git clone https://github.com/0anes0/elektro.git ~/elektro && cd ~/elektro
