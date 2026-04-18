@@ -26,7 +26,7 @@ Uygulamayı sisteminize global bir komut olarak kurmak için aşağıdaki adıml
 
 **1. Repoyu bilgisayarınıza klonlayın ve dizine girin:**
 ```bash
-git clone [https://github.com/0anes0/elektro.git](https://github.com/0anes0/elektro.git)
+git clone https://github.com/0anes0/elektro.git
 cd elektro
 ```
 
