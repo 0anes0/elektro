@@ -1,4 +1,4 @@
-# ⚡ Elektro
+#  Elektro
 
 Terminal tabanlı Elektrik-Elektronik Mühendisliği hesaplama aracı.
 
@@ -17,7 +17,8 @@ Terminal tabanlı Elektrik-Elektronik Mühendisliği hesaplama aracı.
 
 ## Kurulum
 
-### Pip ile (Yakında PyPI'da)
+### 1. Repoyu klonla
 
 ```bash
-pip install elektro
+git clone https://github.com/0anes0/elektro.git
+cd elektro
