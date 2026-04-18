@@ -28,7 +28,9 @@ Uygulamayı sisteminize global bir komut olarak kurmak için aşağıdaki adıml
 ```bash
 git clone [https://github.com/0anes0/elektro.git](https://github.com/0anes0/elektro.git)
 cd elektro
+```
 
 **2. Uygulamayı sisteme izole ve global bir şekilde kurun:**
 ```bash
 pipx install .
+```
