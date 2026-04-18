@@ -33,4 +33,7 @@ cd elektro
 **2. Uygulamayı sisteme izole ve global bir şekilde kurun:**
 ```bash
 pipx install .
+
+#pipx kurulu değilse kurun.
+
 ```
