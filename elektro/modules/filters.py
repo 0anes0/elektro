@@ -1,15 +1,45 @@
 import typer
 import math
+from rich.panel import Panel
 from elektro.modules.utils import console, format_number, result_panel
 
 app = typer.Typer(help="RC/RL/LC filtre analizi")
 
+def parse_eng(val: str) -> float:
+    """Mühendislik birimlerini (k, M, m, u, n, p vb.) float değere çevirir."""
+    val = str(val).strip().replace(',', '.')
+    
+    # Eğer doğrudan düz sayı girildiyse (örn: 1000)
+    try:
+        return float(val)
+    except ValueError:
+        pass
+    
+    # Mühendislik çarpanları
+    suffixes = {
+        'T': 1e12, 'G': 1e9, 'M': 1e6, 'k': 1e3, 'K': 1e3,
+        'm': 1e-3, 'u': 1e-6, 'µ': 1e-6, 'n': 1e-9, 'p': 1e-12, 'f': 1e-15
+    }
+    
+    for suffix, mult in suffixes.items():
+        if val.endswith(suffix):
+            try:
+                return float(val[:-len(suffix)]) * mult
+            except ValueError:
+                break
+                
+    raise typer.BadParameter(f"Geçersiz mühendislik formatı: {val}. Örnekler: 1k, 100n, 4.7u")
+
+
 @app.command()
 def rc(
-    r: float = typer.Option(..., "--r", help="Dirench (Ohm)"),
-    c: float = typer.Option(..., "--c", help="Kapasitans (Farad)"),
+    r: str = typer.Option(..., "--r", help="Direnç (Örn: 1k, 100)"),
+    c: str = typer.Option(..., "--c", help="Kapasitans (Örn: 100n, 10u)"),
 ):
     """RC dusuk geciren filtre (Low-Pass)"""
+    r = parse_eng(r)
+    c = parse_eng(c)
+    
     fc = 1 / (2 * math.pi * r * c)
     tau = r * c
     
@@ -41,10 +71,13 @@ def rc(
 
 @app.command()
 def rl(
-    r: float = typer.Option(..., "--r", help="Dirench (Ohm)"),
-    l: float = typer.Option(..., "--l", help="Enduktans (Henry)"),
+    r: str = typer.Option(..., "--r", help="Direnç (Örn: 1k, 100)"),
+    l: str = typer.Option(..., "--l", help="Endüktans (Örn: 4.7m, 10u)"),
 ):
     """RL yuksek geciren filtre (High-Pass)"""
+    r = parse_eng(r)
+    l = parse_eng(l)
+    
     fc = r / (2 * math.pi * l)
     tau = l / r
     
@@ -61,10 +94,13 @@ def rl(
 
 @app.command()
 def lc(
-    l: float = typer.Option(..., "--l", help="Enduktans (Henry)"),
-    c: float = typer.Option(..., "--c", help="Kapasitans (Farad)"),
+    l: str = typer.Option(..., "--l", help="Endüktans (Örn: 4.7m, 10u)"),
+    c: str = typer.Option(..., "--c", help="Kapasitans (Örn: 100n, 10u)"),
 ):
     """LC rezonans devresi (Band-Pass)"""
+    l = parse_eng(l)
+    c = parse_eng(c)
+    
     fr = 1 / (2 * math.pi * math.sqrt(l * c))
     xl = 2 * math.pi * fr * l
     xc = 1 / (2 * math.pi * fr * c)
@@ -96,11 +132,15 @@ def lc(
 
 @app.command()
 def rlc(
-    r: float = typer.Option(..., "--r", help="Dirench (Ohm)"),
-    l: float = typer.Option(..., "--l", help="Enduktans (Henry)"),
-    c: float = typer.Option(..., "--c", help="Kapasitans (Farad)"),
+    r: str = typer.Option(..., "--r", help="Direnç (Örn: 1k, 100)"),
+    l: str = typer.Option(..., "--l", help="Endüktans (Örn: 4.7m, 10u)"),
+    c: str = typer.Option(..., "--c", help="Kapasitans (Örn: 100n, 10u)"),
 ):
     """Seri RLC band-pass filtre"""
+    r = parse_eng(r)
+    l = parse_eng(l)
+    c = parse_eng(c)
+    
     fr = 1 / (2 * math.pi * math.sqrt(l * c))
     bw = r / (2 * math.pi * l)
     q = fr / bw if bw > 0 else float('inf')
@@ -121,11 +161,15 @@ def rlc(
 
 @app.command()
 def notch(
-    r: float = typer.Option(..., "--r", help="Dirench (Ohm)"),
-    l: float = typer.Option(..., "--l", help="Enduktans (Henry)"),
-    c: float = typer.Option(..., "--c", help="Kapasitans (Farad)"),
+    r: str = typer.Option(..., "--r", help="Direnç (Örn: 1k, 100)"),
+    l: str = typer.Option(..., "--l", help="Endüktans (Örn: 4.7m, 10u)"),
+    c: str = typer.Option(..., "--c", help="Kapasitans (Örn: 100n, 10u)"),
 ):
     """Paralel RLC band-stop filtre (Notch)"""
+    r = parse_eng(r)
+    l = parse_eng(l)
+    c = parse_eng(c)
+    
     fr = 1 / (2 * math.pi * math.sqrt(l * c))
     q = r / (2 * math.pi * fr * l) if fr > 0 else 0
     
@@ -141,7 +185,7 @@ def notch(
     console.print("50/60 Hz gurultu eliminasyonu icin kullanilir.\n")
     
     console.print("[bold]Uygulama:[/] 50 Hz sebeke gurultusu filtreleme")
-    console.print(f"Ornek: elektro filter notch --r 1000 --l 5.07 --c 10e-6")
+    console.print(f"Ornek: elektro filter notch --r 1k --l 5.07 --c 10u")
     console.print(f"(L=5.07H, C=10uF → fr ≈ 50 Hz)")
 
 @app.command()
