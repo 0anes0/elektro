@@ -37,3 +37,8 @@ env/
 .DS_Store
 Thumbs.db
 
+
+# Geliştirme
+.venv/
+.pytest_cache/
+*.pdf

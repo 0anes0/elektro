@@ -1,2 +1,3 @@
 from elektro.cli import app
-app()
+
+app(prog_name="elektro")
