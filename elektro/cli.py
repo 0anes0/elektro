@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import io
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +13,7 @@ from typing import Optional
 
 import typer
 from rich import box
+from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
@@ -130,31 +133,47 @@ def _param_line(p) -> tuple:
     return names, getattr(p, "help", "") or ""
 
 
+def render_manual(out: Console) -> None:
+    root = typer.main.get_command(app)
+    out.rule(f"[bold yellow]ELEKTRO {__version__} — Kullanım Kılavuzu")
+    out.print("Değerler mühendislik gösterimiyle yazılabilir: "
+              "[cyan]4k7  100n  2.2u  10M  1meg  1R5[/]")
+    for path, cmd in _walk(root, ["elektro"]):
+        if path[-1] == "helpall":
+            continue
+        out.print(f"\n[bold cyan]{' '.join(path)}[/]")
+        help_text = (cmd.help or "").split("\f")[0].strip()
+        for line in help_text.splitlines():
+            out.print(f"    {line}", markup=False)
+        params = [_param_line(p) for p in cmd.params if p.name != "help"]
+        if params:
+            out.print()
+            t = Table(show_header=False, box=None, padding=(0, 2, 0, 4))
+            t.add_column(style="green", no_wrap=True)
+            t.add_column()
+            for names, h in params:
+                t.add_row(names, h)
+            out.print(t)
+    out.print(f"\n[dim]{REPO_URL}[/]")
+
+
 @app.command(rich_help_panel=ARAC)
 def helpall():
     """Tüm komutların ayrıntılı kılavuzu (sayfalayıcıda)."""
-    root = typer.main.get_command(app)
-    os.environ.setdefault("LESS", "-R")
-    with console.pager(styles=True):
-        console.rule(f"[bold yellow]ELEKTRO {__version__} — Kullanım Kılavuzu")
-        console.print("Değerler mühendislik gösterimiyle yazılabilir: "
-                      "[cyan]4k7  100n  2.2u  10M  1meg  1R5[/]\n")
-        for path, cmd in _walk(root, ["elektro"]):
-            if path[-1] in ("helpall",):
-                continue
-            console.print(f"\n[bold cyan]{' '.join(path)}[/]")
-            help_text = (cmd.help or "").split("\f")[0].strip()
-            for line in help_text.splitlines():
-                console.print(f"    {line}", markup=False)
-            params = [_param_line(p) for p in cmd.params if p.name not in ("help",)]
-            if params:
-                t = Table(show_header=False, box=None, padding=(0, 2))
-                t.add_column(style="green", no_wrap=True)
-                t.add_column()
-                for names, h in params:
-                    t.add_row("    " + names, h)
-                console.print(t)
-        console.print(f"\n[dim]{REPO_URL}[/]")
+    less = shutil.which("less")
+    if not (sys.stdout.isatty() and less):
+        render_manual(console)
+        return
+    # MANPAGER/PAGER kullanıcının man sayfaları için ayarlanmış olabilir (col -b, bat…)
+    # ve renk kodlarını bozar; bu yüzden doğrudan `less -R` kullanılır.
+    buf = io.StringIO()
+    render_manual(Console(file=buf, force_terminal=True, color_system=console.color_system,
+                          width=console.width, highlight=False))
+    env = {**os.environ, "LESS": "-R", "LESSCHARSET": "utf-8"}
+    try:
+        subprocess.run([less, "-R"], input=buf.getvalue(), text=True, env=env)
+    except (OSError, KeyboardInterrupt):
+        pass
 
 
 # --- update ----------------------------------------------------------------------------

@@ -71,3 +71,10 @@ def test_find_pdf_link_in_lcsc_viewer():
 def test_ddg_unwrap():
     href = "//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.ti.com%2Flit%2Fds%2Fsymlink%2Flm358.pdf&rut=x"
     assert datasheet._ddg_unwrap(href) == "https://www.ti.com/lit/ds/symlink/lm358.pdf"
+
+
+def test_helpall_plain_when_not_tty():
+    result = runner.invoke(app, ["helpall"], env={"MANPAGER": "sh -c 'col -bx | cat'"})
+    assert result.exit_code == 0
+    assert "elektro filter rc" in result.output
+    assert "\x1b" not in result.output and "[92m" not in result.output
