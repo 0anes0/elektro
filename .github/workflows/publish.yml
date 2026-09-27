@@ -1,0 +1,41 @@
+# PyPI'ye yayın: "v0.4.0" gibi bir etiket gönderildiğinde çalışır.
+#   git tag v0.4.0 && git push origin v0.4.0
+# Önce PyPI'de "Trusted Publisher" tanımlanmalı (bkz. README → Development).
+name: publish
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - name: Etiket ile sürüm aynı mı?
+        run: |
+          v=$(python -c "import re;print(re.search(r'__version__ = \"(.+)\"', open('elektro/__init__.py').read()).group(1))")
+          test "v$v" = "${GITHUB_REF_NAME}" || { echo "Etiket ${GITHUB_REF_NAME} ile __version__ $v uyuşmuyor"; exit 1; }
+      - run: python -m build
+      - run: twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

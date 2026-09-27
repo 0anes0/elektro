@@ -2,7 +2,7 @@
   <h1>⚡ ELEKTRO</h1>
   <p><i>Terminal tabanlı Elektrik-Elektronik Mühendisliği aracı</i></p>
 
-  [English](README.md) · **Türkçe**
+  [English](https://github.com/0anes0/elektro/blob/main/README.md) · **Türkçe**
 
   ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
   ![License](https://img.shields.io/badge/license-GPLv3-green.svg)
@@ -62,8 +62,10 @@ ELEKTRO_LANG=ru elektro      # ortam değişkeniyle
 
 ## 🚀 Kullanım
 
-`elektro` yazınca komut menüsü, `elektro KOMUT --help` ile ayrıntı, `elektro helpall` ile
-tüm kılavuz açılır.
+`elektro` yazınca komut menüsü, `elektro KOMUT --help` ile ayrıntı, `elektro helpall` ya da
+`man elektro` ile tüm kılavuz açılır.
+
+Her komut `--json` ile makine okunur çıktı verir: `elektro ohm -v 12 -r 1k --json`
 
 ### Temel
 
@@ -85,6 +87,10 @@ elektro logic convert 0xFF           # onlu/onaltılı/ikili/sekizli
 elektro logic convert --bits 8 -- -5 # ikiye tümleyen
 elektro logic truth xor
 elektro logic expr "A & B | ~C"      # boolean ifade doğruluk tablosu
+
+elektro switch bjt --ic 500m -v 3.3  # NPN anahtar için taban direnci
+elektro switch mosfet -v 10 --qg 40n -f 100k   # kapı sürme ve kayıplar
+elektro charge --r 10k --c 100u --v 5 --to 3.3 # RC dolma süresi + eğri
 ```
 
 Direnç renkleri Türkçe kısa kodlarla (`s k r t sa y m mo g b a gu`), IEC kodlarıyla
@@ -101,6 +107,18 @@ elektro divider --vin 5 --vout 3.3           # en iyi E24 R1/R2 çiftleri
 elektro led --vs 12 --vf 3.1 -i 15m -n 3     # LED ön direnci + güç sınıfı
 elektro eseries 4k8                          # en yakın standart değerler (E3-E192)
 elektro cap 104                              # kondansatör kodu ↔ değer
+```
+
+### Güç ve iletkenler
+
+```bash
+elektro regulator lm317 --vout 5             # ayarlı regülatör için R2
+elektro regulator 7805 --vin 12 -i 500m      # lineer regülatörde harcanan güç
+elektro battery 2000 -i 15m                  # batarya ömrü
+elektro battery 1200 --active 45m --active-time 2 --sleep 20u --sleep-time 58
+elektro thermal -p 5 --rth-jc 3 --ta 50      # gereken soğutucu
+elektro wire --awg 22 -l 3 -i 2              # AWG ↔ mm², gerilim düşümü
+elektro trace -i 3                           # PCB yol genişliği (IPC-2221)
 ```
 
 ### Filtreler
@@ -125,6 +143,28 @@ elektro rf link -f 868 -d 10 --tx 14 --sens -137   # link marjı ve maks. menzil
 elektro rf wave -f 433.92                          # dalga boyu, anten boyları
 elektro rf convert 14 dbm w
 elektro rf convert 1.5 vswr                        # |Γ|, return loss, uyumsuzluk kaybı
+elektro rf lora --sf 9 -p 20                       # LoRa havada kalma süresi, hassasiyet
+elektro rf fresnel -f 868 -d 10                    # Fresnel bölgesi / anten yüksekliği
+elektro rf microstrip --z0 50 --h 1.6 --er 4.4     # 50 Ω yol genişliği
+elektro rf coax lmr400 -f 2.4G -l 20m              # kablo kaybı
+```
+
+### Gömülü sistemler
+
+```bash
+elektro uart -c 16M -b 115200                # baud kaydı ve hata (avr/stm32)
+elektro pwm -c 72M -f 20k -m stm32 -d 25     # ön bölücü, ARR, karşılaştırma değeri
+elektro adc -b 12 --vref 3.3 --code 2048     # ADC kod ↔ gerilim
+elektro i2c --cb 200p -s 400k                # I²C pull-up aralığı
+elektro crc "01 03 00 00 00 0A"              # CRC-8/16/32, Modbus, checksum
+```
+
+### Araçlar
+
+```bash
+elektro calc "12V / (4k7 + 1k)"              # mühendislik gösterimli hesap makinesi
+elektro calc "par(1k, 2k2, 4k7)" -u Ω
+elektro unit 25 c                            # °C/°F/K, mil/mm, dB, AWG …
 ```
 
 ### Datasheet indirici
@@ -134,11 +174,13 @@ elektro datasheet lm358
 elektro datasheet ams1117 --open       # indir ve aç
 elektro datasheet esp32 --list         # indirmeden adayları göster
 elektro datasheet 2n2222 -o transistor.pdf
+elektro datasheet --history            # daha önce indirilen (önbellekteki) datasheet'ler
 ```
 
 Sırasıyla üretici sitelerine (TI, Espressif, onsemi, Diodes, Nexperia), LCSC/JLCPCB parça
 veritabanına ve DuckDuckGo'ya bakar. İnen dosyanın gerçekten PDF olduğu doğrulanır; hiçbir
-kaynak çalışmazsa elle arama bağlantıları verilir.
+kaynak çalışmazsa elle arama bağlantıları verilir. İndirilenler `~/.cache/elektro/` altında
+saklanır; aynı parça bir dahaki sefere anında gelir.
 
 ## 🧪 Geliştirme
 
@@ -151,6 +193,10 @@ python3 -m venv .venv
 Çeviriler `elektro/i18n/` klasöründe (`en.py` kaynak dil). Testler her dilde her anahtarın aynı
 yer tutucularla bulunduğunu kontrol eder.
 
+PyPI'ye yayın (paket adı `elektro-cli`): PyPI'de bu repo için bir *Trusted Publisher* tanımla
+(workflow `publish.yml`, environment `pypi`), sonra `__version__` ile aynı etiketi gönder:
+`git tag v0.4.0 && git push origin v0.4.0`.
+
 ## 📄 Lisans
 
-[GPLv3](LICENSE) © Ahmet Enes KAYMAK
+[GPLv3](https://github.com/0anes0/elektro/blob/main/LICENSE) © Ahmet Enes KAYMAK

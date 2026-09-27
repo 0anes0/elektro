@@ -560,3 +560,468 @@ MESSAGES = {
     "ds.all_failed": "Could not download a PDF from any of the candidates.",
     "ds.manual": "Search manually:",
 }
+
+# --- 0.4: new commands ------------------------------------------------------------------
+MESSAGES.update({
+    "cli.opt.json": "Print results as JSON (for scripts)",
+    "panel.power": "Power & wiring",
+    "panel.embedded": "Embedded",
+    "menu.switch": "Transistor as a switch",
+    "menu.charge": "RC/RL charge curve",
+    "menu.regulator": "Voltage regulator",
+    "menu.battery": "Battery life",
+    "menu.thermal": "Heat & heatsink",
+    "menu.wire": "Wire gauge, voltage drop",
+    "menu.trace": "PCB trace width",
+    "menu.uart": "UART baud error",
+    "menu.pwm": "Timer/PWM registers",
+    "menu.adc": "ADC voltage ↔ code",
+    "menu.i2c": "I²C pull-up resistor",
+    "menu.crc": "CRC / checksum",
+    "menu.calc": "Calculator with units",
+    "menu.unit": "Unit converter",
+    "time.min": "min",
+    "time.hours": "hours",
+    "time.days": "days",
+    "time.months": "months",
+
+    # regulator
+    "reg.help": (
+        "Voltage regulator: resistors for adjustable parts, dissipation for linear ones.\n\n"
+        "Adjustable: lm317, lm1117, ams1117, lm2596, xl4015, mp1584\n"
+        "Fixed: 7805, 7812, ams1117-3.3 …\n\n"
+        "Examples:\n"
+        "  elektro regulator lm317 --vout 5\n"
+        "  elektro regulator lm317 --r1 240 --r2 720\n"
+        "  elektro regulator 7805 --vin 12 -i 500m\n"
+        "  elektro regulator ams1117-3.3 --vin 5 -i 300m"
+    ),
+    "reg.arg": "Regulator part, e.g. lm317, 7805, ams1117-3.3",
+    "reg.opt.vout": "Target output voltage (adjustable parts)",
+    "reg.opt.vin": "Input voltage",
+    "reg.opt.iout": "Load current",
+    "reg.opt.r1": "R1 (between OUT and ADJ/FB); default: datasheet value",
+    "reg.opt.r2": "R2 (between ADJ/FB and ground) — computes Vout",
+    "reg.unknown": "unknown regulator '{name}' (known: {options})",
+    "reg.vout_low": "output must be above the reference voltage ({vref} V)",
+    "reg.need_vout": "give --vout, or --r2 to compute the output",
+    "reg.vout": "Output voltage",
+    "reg.r2_calc": "R2 (calculated)",
+    "reg.dropout": "Typical dropout",
+    "reg.headroom": "Vin − Vout",
+    "reg.dropout_warn": "Vin − Vout = {headroom} V is below the typical dropout ({dropout} V); output may sag.",
+    "reg.power": "Dissipation",
+    "reg.efficiency": "Efficiency",
+    "reg.switching_note": "Switching regulator: dissipation depends on efficiency (typically 80-95%), see the datasheet.",
+    "reg.heat_note": "Over 1 W needs a heatsink in most packages — check with: elektro thermal --help",
+
+    # battery
+    "bat.help": (
+        "Battery life from capacity and average current (or an active/sleep profile).\n\n"
+        "Examples:\n"
+        "  elektro battery 2000 -i 15m\n"
+        "  elektro battery 1200 --active 45m --active-time 2 --sleep 20u --sleep-time 58"
+    ),
+    "bat.arg": "Capacity in mAh",
+    "bat.opt.current": "Average current (A), e.g. 15m",
+    "bat.opt.active": "Current while active (A)",
+    "bat.opt.active_time": "Time active per cycle (s)",
+    "bat.opt.sleep": "Current while sleeping (A)",
+    "bat.opt.sleep_time": "Time asleep per cycle (s)",
+    "bat.opt.derate": "Usable fraction of the capacity (aging, temperature, cutoff)",
+    "bat.need": "give -i, or all of --active --active-time --sleep --sleep-time",
+    "bat.title": "Battery Life",
+    "bat.capacity": "Capacity",
+    "bat.usable": "Usable",
+    "bat.avg_current": "Average current",
+    "bat.life": "Estimated life",
+    "bat.note": "Self-discharge and regulator quiescent current are not included.",
+
+    # thermal
+    "th.help": (
+        "Junction temperature and required heatsink.\n\n"
+        "Tj = Ta + P · (Rθjc + Rθcs + Rθsa)   or   Tj = Ta + P · Rθja\n\n"
+        "Examples:\n"
+        "  elektro thermal -p 2 --rth-ja 62 --ta 40          (no heatsink, TO-220)\n"
+        "  elektro thermal -p 5 --rth-jc 3 --rth-sa 8\n"
+        "  elektro thermal -p 5 --rth-jc 3 --ta 50           (required heatsink)"
+    ),
+    "th.opt.power": "Dissipated power (W)",
+    "th.opt.ta": "Ambient temperature (°C)",
+    "th.opt.tjmax": "Maximum junction temperature (°C)",
+    "th.opt.rja": "Junction-to-ambient thermal resistance without heatsink (°C/W)",
+    "th.opt.rjc": "Junction-to-case thermal resistance (°C/W)",
+    "th.opt.rcs": "Case-to-heatsink (thermal pad/paste) (°C/W)",
+    "th.opt.rsa": "Heatsink-to-ambient (°C/W)",
+    "th.need": "give --rth-ja, or --rth-jc (with or without --rth-sa)",
+    "th.title": "Thermal",
+    "th.power": "Power",
+    "th.total": "Total Rθ",
+    "th.need_sa": "Required heatsink Rθsa ≤",
+    "th.impossible": "impossible — reduce the power",
+    "th.margin": "Margin to Tj max",
+    "th.margin_note": "Choose a heatsink comfortably below this value (~20-30% margin).",
+    "th.over": "The junction temperature exceeds the maximum!",
+
+    # wire
+    "wire.help": (
+        "Copper wire: AWG ↔ mm², resistance, voltage drop and loss.\n\n"
+        "Examples:\n"
+        "  elektro wire --awg 22 -l 3 -i 2\n"
+        "  elektro wire --mm2 1.5 -l 10 -i 10 --round-trip"
+    ),
+    "wire.opt.awg": "Wire gauge (AWG)",
+    "wire.opt.mm2": "Cross-section (mm²)",
+    "wire.opt.length": "Length (plain number = m): 3, 50cm, 10ft",
+    "wire.opt.current": "Current (A)",
+    "wire.opt.round_trip": "Count the length twice (supply + return conductor)",
+    "wire.opt.temp": "Conductor temperature (°C)",
+    "wire.metavar.length": "LENGTH",
+    "wire.bad_length": "could not parse length '{text}' (e.g. 3, 50cm, 10ft)",
+    "wire.need": "give either --awg or --mm2",
+    "wire.title": "Copper Wire",
+    "wire.diameter": "Diameter",
+    "wire.area": "Cross-section",
+    "wire.r_per_m": "Resistance per metre",
+    "wire.resistance": "Resistance",
+    "wire.drop": "Voltage drop",
+    "wire.loss": "Power loss",
+    "wire.density": "Current density",
+    "wire.hot": "Current density is high; the wire may heat up (> 6 A/mm²).",
+    "wire.note": "Solid copper; stranded wire has slightly higher resistance.",
+
+    # trace
+    "trace.help": (
+        "PCB trace width by IPC-2221 (or the current a trace can carry).\n\n"
+        "Examples:\n"
+        "  elektro trace -i 3\n"
+        "  elektro trace -i 5 --rise 20 --oz 2\n"
+        "  elektro trace -w 0.5 --internal -l 40mm"
+    ),
+    "trace.opt.current": "Current (A)",
+    "trace.opt.width": "Trace width in mm (computes the current)",
+    "trace.opt.rise": "Allowed temperature rise (°C)",
+    "trace.opt.oz": "Copper weight (oz/ft²): 0.5, 1, 2",
+    "trace.opt.internal": "Internal layer (external by default)",
+    "trace.opt.length": "Trace length (plain number = m): 40mm, 0.1",
+    "trace.need": "give either -i or -w",
+    "trace.title": "PCB Trace (IPC-2221)",
+    "trace.width": "Width",
+    "trace.current": "Current",
+    "trace.thickness": "Copper",
+    "trace.layer": "Layer",
+    "trace.internal": "internal",
+    "trace.external": "external",
+    "trace.rise": "Temperature rise",
+    "trace.note": "IPC-2221 is conservative; for high currents also check IPC-2152.",
+
+    # transistor switch
+    "sw.help": "Transistor as a switch: BJT base resistor, MOSFET gate drive.",
+    "sw.opt.vdrive": "Drive voltage (e.g. GPIO 3.3 or 5 V)",
+    "sw.bjt.help": (
+        "BJT (NPN) saturated switch: base resistor and losses.\n\n"
+        "Ib = Ic / hFE · k     Rb = (Vdrive − Vbe) / Ib\n\n"
+        "Examples:\n"
+        "  elektro switch bjt --ic 500m -v 3.3\n"
+        "  elektro switch bjt --vcc 12 --rload 24 -v 5 --hfe 150"
+    ),
+    "sw.bjt.opt.ic": "Collector (load) current",
+    "sw.bjt.opt.hfe": "Minimum current gain hFE (from the datasheet)",
+    "sw.bjt.opt.overdrive": "Overdrive factor k for solid saturation (2-5)",
+    "sw.bjt.opt.vbe": "Base-emitter voltage (V)",
+    "sw.bjt.opt.vcesat": "Collector-emitter saturation voltage (V)",
+    "sw.bjt.opt.vcc": "Supply voltage (with --rload, instead of --ic)",
+    "sw.bjt.opt.rload": "Load resistance (with --vcc)",
+    "sw.bjt.need": "give --ic, or --vcc and --rload",
+    "sw.bjt.vdrive_low": "drive voltage must be above Vbe ({vbe} V)",
+    "sw.bjt.title": "BJT Switch",
+    "sw.bjt.ib": "Required Ib",
+    "sw.bjt.rb_calc": "Rb (calculated)",
+    "sw.bjt.rb_std": "Rb (E12, one lower)",
+    "sw.bjt.forced_beta": "Forced β (Ic/Ib)",
+    "sw.bjt.p_transistor": "Transistor loss",
+    "sw.bjt.p_rb": "Rb power",
+    "sw.bjt.gpio_warn": "Base current {ib} is too high for most MCU pins; use a Darlington or MOSFET.",
+    "sw.bjt.note": "For inductive loads (relay, motor) add a flyback diode across the load.",
+    "sw.fet.help": (
+        "MOSFET gate drive: gate current, switching time and losses.\n\n"
+        "Examples:\n"
+        "  elektro switch mosfet -v 10 --qg 40n --rg 10 -f 100k\n"
+        "  elektro switch mosfet -v 5 --qg 20n -f 20k --id 5 --rds 20m --vds 24"
+    ),
+    "sw.fet.opt.qg": "Total gate charge Qg (C), e.g. 40n",
+    "sw.fet.opt.rg": "Gate resistor (Ω)",
+    "sw.fet.opt.fsw": "Switching frequency (Hz)",
+    "sw.fet.opt.id": "Drain current (A)",
+    "sw.fet.opt.rds": "On-resistance Rds(on) (Ω)",
+    "sw.fet.opt.vds": "Drain-source voltage when off (V)",
+    "sw.fet.title": "MOSFET Gate Drive",
+    "sw.fet.ipeak": "Peak gate current",
+    "sw.fet.tsw": "Switching time (≈ Qg/Ig)",
+    "sw.fet.pgate": "Gate drive power",
+    "sw.fet.pcond": "Conduction loss",
+    "sw.fet.psw": "Switching loss (approx.)",
+    "sw.fet.ptotal": "Total loss",
+    "sw.fet.slow": "Switching takes more than 10% of the period; use a gate driver or smaller Rg.",
+    "sw.fet.logic_level": "Drive below 5 V: use a logic-level MOSFET (Rds(on) specified at 2.5-4.5 V).",
+    "sw.fet.note": "Estimates; the real switching time also depends on the Miller plateau and the driver.",
+
+    # charge
+    "chg.help": (
+        "RC capacitor charge / RL inductor current over time.\n\n"
+        "v(t) = Vf + (V0 − Vf) · e^(−t/τ)\n\n"
+        "Examples:\n"
+        "  elektro charge --r 10k --c 100u --v 5\n"
+        "  elektro charge --r 10k --c 100u --v 5 --to 3.3      (time to 3.3 V)\n"
+        "  elektro charge --r 10k --c 100u --v 0 --v0 5 --t 1  (discharge)\n"
+        "  elektro charge --r 10 --l 1m --v 12                 (RL current)"
+    ),
+    "chg.opt.r": "Resistance (Ω)",
+    "chg.opt.c": "Capacitance (F) for RC",
+    "chg.opt.l": "Inductance (H) for RL",
+    "chg.opt.v": "Applied (final) voltage (V)",
+    "chg.opt.v0": "Initial capacitor voltage (V)",
+    "chg.opt.to": "Target voltage: how long until reached",
+    "chg.opt.t": "Time (s): value at this moment",
+    "chg.need": "give either --c (RC) or --l (RL)",
+    "chg.unreachable": "the target is never reached (it is not between the start and final value)",
+    "chg.title_rc": "RC Charge",
+    "chg.title_rl": "RL Current",
+    "chg.final": "Final value",
+    "chg.value_at": "Value at {time}",
+    "chg.time_to": "Time to {target}",
+    "chg.note": "After 1τ {pct} of the change is done; after 5τ it is practically complete.",
+
+    # microstrip
+    "ms.help": (
+        "Microstrip line: trace width for an impedance, or impedance of a width (Hammerstad).\n\n"
+        "Examples:\n"
+        "  elektro rf microstrip --z0 50                   (1.6 mm FR4)\n"
+        "  elektro rf microstrip --z0 50 --h 0.2 --er 4.2 -f 2.4G\n"
+        "  elektro rf microstrip -w 3"
+    ),
+    "ms.opt.z0": "Target impedance (Ω)",
+    "ms.opt.width": "Trace width (mm) — computes Z0",
+    "ms.opt.h": "Dielectric thickness to the ground plane (mm)",
+    "ms.opt.er": "Relative permittivity εr (FR4 ≈ 4.2-4.6)",
+    "ms.need": "give either --z0 or --width",
+    "ms.range": "impedance out of the achievable range",
+    "ms.title": "Microstrip",
+    "ms.width": "Trace width",
+    "ms.lambda": "Wavelength on the line",
+    "ms.note": "Copper thickness and solder mask are ignored; use your fab's calculator for final values.",
+
+    # LoRa
+    "lora.help": (
+        "LoRa time on air, bit rate, sensitivity and duty-cycle limit (Semtech AN1200.13).\n\n"
+        "Examples:\n"
+        "  elektro rf lora --sf 9 -p 20\n"
+        "  elektro rf lora --sf 12 --bw 125k --cr 4/8 -p 51"
+    ),
+    "lora.opt.sf": "Spreading factor (7-12)",
+    "lora.opt.bw": "Bandwidth (Hz): 125k, 250k, 500k",
+    "lora.opt.cr": "Coding rate: 4/5 … 4/8",
+    "lora.opt.payload": "Payload length (bytes)",
+    "lora.opt.preamble": "Preamble length (symbols)",
+    "lora.opt.no_crc": "Without payload CRC",
+    "lora.opt.implicit": "Implicit header mode",
+    "lora.opt.duty": "Duty cycle limit in % (EU 868 MHz: 1)",
+    "lora.opt.nf": "Receiver noise figure (dB)",
+    "lora.bad_cr": "coding rate must be 4/5, 4/6, 4/7 or 4/8",
+    "lora.airtime": "Time on air",
+    "lora.symbol": "Symbol time",
+    "lora.bitrate": "Bit rate",
+    "lora.sensitivity": "Sensitivity (approx.)",
+    "lora.per_hour": "Packets/hour at {duty}",
+    "lora.interval": "every",
+    "lora.on": "on",
+    "lora.off": "off",
+    "lora.note": "LDRO (low data rate optimisation) is enabled automatically when the symbol time exceeds 16 ms.",
+
+    # Fresnel
+    "fresnel.help": (
+        "First Fresnel zone and the antenna height needed for line of sight.\n\n"
+        "r₁ = √(λ·d₁·d₂ / D)\n\n"
+        "Examples:\n"
+        "  elektro rf fresnel -f 868 -d 10\n"
+        "  elektro rf fresnel -f 2.4G -d 3 --at 500m"
+    ),
+    "fresnel.opt.at": "Distance of the obstacle from the transmitter (default: midpoint)",
+    "fresnel.opt.k": "Effective earth radius factor (standard atmosphere 4/3)",
+    "fresnel.bad_at": "the point must lie between the two antennas",
+    "fresnel.title": "Fresnel Zone",
+    "fresnel.point": "Point (d₁ / d₂)",
+    "fresnel.r1": "1st Fresnel radius",
+    "fresnel.r60": "60% clearance",
+    "fresnel.bulge": "Earth bulge",
+    "fresnel.need": "Required clearance",
+    "fresnel.note": "The line between the antennas must pass this height above obstacles at that point.",
+
+    # coax
+    "coax.help": (
+        "Coaxial cable loss at a frequency (typical values).\n\n"
+        "Cables: RG-58, RG-174, RG-316, RG-213, RG-6, LMR-195, LMR-240, LMR-400, LMR-600\n\n"
+        "Examples:\n"
+        "  elektro rf coax rg58 -f 868 -l 5\n"
+        "  elektro rf coax lmr400 -f 2.4G -l 20m"
+    ),
+    "coax.arg": "Cable type, e.g. rg58, lmr400",
+    "coax.opt.length": "Cable length (plain number = m): 5, 150cm, 30ft",
+    "coax.metavar.length": "LENGTH",
+    "coax.unknown": "unknown cable '{name}' (known: {options})",
+    "coax.per100": "Loss per 100 m",
+    "coax.loss": "Total loss",
+    "coax.delivered": "Power delivered",
+    "coax.delay": "Delay",
+    "coax.electrical": "Electrical length",
+    "coax.note": "Typical values; see the manufacturer's datasheet for your exact cable. Connectors add ~0.1-0.3 dB each.",
+
+    # MCU common
+    "mcu.opt.clock": "Peripheral clock (Hz), e.g. 16M, 72M",
+    "mcu.opt.mcu": "Microcontroller family: avr, stm32, generic",
+    "mcu.unknown": "unknown MCU family '{mcu}' (options: {options})",
+
+    # UART
+    "uart.help": (
+        "UART baud rate register and error.\n\n"
+        "Without --baud a table of common rates is shown.\n\n"
+        "Examples:\n"
+        "  elektro uart -c 16M -b 115200\n"
+        "  elektro uart -c 16M\n"
+        "  elektro uart -c 72M -b 921600 -m stm32"
+    ),
+    "uart.opt.baud": "Baud rate",
+    "uart.opt.oversample": "Oversampling for --mcu generic",
+    "uart.col.baud": "Baud",
+    "uart.col.mode": "Mode",
+    "uart.col.register": "Register",
+    "uart.col.actual": "Actual",
+    "uart.col.error": "Error",
+    "uart.impossible": "not possible",
+    "uart.note": "Errors up to ±2% usually work; keep it below ±1% for reliability.",
+
+    # PWM
+    "pwm.help": (
+        "Timer/PWM prescaler and period register for a frequency.\n\n"
+        "Examples:\n"
+        "  elektro pwm -c 16M -f 20k                 (AVR Timer1)\n"
+        "  elektro pwm -c 16M -f 1k --bits 8\n"
+        "  elektro pwm -c 72M -f 20k -m stm32 -d 25"
+    ),
+    "pwm.opt.freq": "PWM frequency (Hz)",
+    "pwm.opt.bits": "Timer width in bits (8, 16, 32)",
+    "pwm.opt.duty": "Duty cycle in % (computes the compare value)",
+    "pwm.bad": "clock and frequency must be positive; bits must be 8, 10, 16 or 32",
+    "pwm.impossible": "this frequency cannot be produced with this clock/timer",
+    "pwm.prescaler": "Prescaler",
+    "pwm.actual": "Actual frequency",
+    "pwm.error": "Error",
+    "pwm.resolution": "Resolution",
+    "pwm.steps": "steps",
+    "pwm.compare": "Compare value for {duty}",
+    "pwm.low_res": "Resolution is below 8 bits; lower the frequency or raise the clock.",
+
+    # ADC
+    "adc.help": (
+        "ADC/DAC: LSB size, voltage ↔ code conversion, ideal SNR.\n\n"
+        "V = code · Vref / 2ᴺ\n\n"
+        "Examples:\n"
+        "  elektro adc -b 12 --vref 3.3 --code 2048\n"
+        "  elektro adc -b 10 --vref 5 --volt 1.2"
+    ),
+    "adc.opt.bits": "Resolution in bits",
+    "adc.opt.vref": "Reference voltage (V)",
+    "adc.opt.code": "Digital code → voltage",
+    "adc.opt.volt": "Voltage → digital code",
+    "adc.steps": "Steps",
+    "adc.snr": "Ideal SNR",
+    "adc.voltage_of": "Voltage of code {code}",
+    "adc.code_of": "Code of {volt}",
+    "adc.code_range": "code must be between 0 and {max}",
+    "adc.clipped": "The voltage is outside 0 … Vref; the code is clipped.",
+    "adc.note": "Some datasheets use 2ᴺ − 1 as divisor; the difference is 1 LSB.",
+
+    # I2C
+    "i2c.help": (
+        "I²C pull-up resistor range from bus capacitance and speed.\n\n"
+        "Rmin = (Vdd − 0.4 V) / Iol     Rmax = tr / (0.8473 · Cb)\n\n"
+        "Examples:\n"
+        "  elektro i2c --cb 200p\n"
+        "  elektro i2c --vdd 5 --cb 100p -s 100k"
+    ),
+    "i2c.opt.vdd": "Pull-up supply voltage (V)",
+    "i2c.opt.cb": "Total bus capacitance (F), e.g. 200p (≈10 pF per device + wiring)",
+    "i2c.opt.speed": "Bus speed: 100k, 400k or 1M",
+    "i2c.bad_speed": "speed must be 100k, 400k or 1M",
+    "i2c.cb_limit": "The I²C standard allows at most 400 pF bus capacitance.",
+    "i2c.impossible": "no valid resistor: bus capacitance too high for this speed",
+    "i2c.suggested": "Suggested (E12)",
+    "i2c.note": "Smaller R = faster edges but higher current; stay between Rmin and Rmax.",
+
+    # CRC
+    "crc.help": (
+        "CRC and simple checksums of a byte sequence.\n\n"
+        "Examples:\n"
+        "  elektro crc \"01 03 00 00 00 0A\"\n"
+        "  elektro crc 0x31323334 -a modbus\n"
+        "  elektro crc \"123456789\" --text"
+    ),
+    "crc.arg": "Data as hex bytes (\"01 03 0A\", 0x01030A) or text with --text",
+    "crc.opt.text": "Treat the data as text (UTF-8)",
+    "crc.opt.algo": "Only this algorithm (e.g. modbus, crc-32)",
+    "crc.bad_hex": "invalid hex data (use pairs of hex digits, e.g. \"01 03 0A\")",
+    "crc.unknown": "unknown algorithm '{algo}' (options: {options})",
+    "crc.title": "CRC of {n} bytes",
+    "crc.col.algo": "Algorithm",
+    "crc.col.bytes": "Bytes (transmit order)",
+
+    # calc
+    "calc.help": (
+        "Calculator that understands engineering notation and units.\n\n"
+        "Operators: + − * / ^ ( )   Functions: sqrt log ln exp sin cos tan db dbp par\n"
+        "Constants: pi e c.  par(a, b, …) = parallel combination.\n\n"
+        "Examples:\n"
+        "  elektro calc \"12V / (4k7 + 1k)\"\n"
+        "  elektro calc \"1 / (2*pi*sqrt(10u * 100n))\" -u Hz\n"
+        "  elektro calc \"par(1k, 2k2, 4k7)\" -u Ω\n"
+        "  elektro calc \"db(3.3 / 0.1)\""
+    ),
+    "calc.arg": "Expression (quote it in the shell)",
+    "calc.opt.unit": "Unit to show with the result (V, A, Ω, Hz …)",
+    "calc.syntax": "could not parse the expression",
+    "calc.unknown_name": "unknown name '{name}'",
+    "calc.unsupported": "unsupported element in the expression",
+    "calc.div_zero": "division by zero",
+    "calc.complex": "the result is complex",
+
+    # unit
+    "unit.help": (
+        "Unit converter for everyday electronics.\n\n"
+        "Temperature: c f k · Length: m cm mm um in mil ft · dB: db pratio vratio\n"
+        "Wire: awg mm2 · Copper: oz · Angle: deg rad · Frequency: hz rpm\n\n"
+        "Examples:\n"
+        "  elektro unit 25 c\n"
+        "  elektro unit 10 mil mm\n"
+        "  elektro unit 6 db\n"
+        "  elektro unit 22 awg"
+    ),
+    "unit.arg.value": "Value",
+    "unit.arg.src": "Source unit ({units})",
+    "unit.arg.dst": "Target unit (all if omitted)",
+    "unit.unknown": "unknown unit '{unit}' (options: {options})",
+    "unit.no_path": "no conversion from {src} to {dst}",
+    "unit.below_zero": "below absolute zero",
+    "unit.power_ratio": "power ratio",
+    "unit.voltage_ratio": "voltage ratio",
+    "unit.period": "period (s)",
+
+    # datasheet cache
+    "ds.opt.history": "List previously downloaded datasheets (cache)",
+    "ds.from_cache": "Found in the cache, no download needed.",
+    "ds.cache_source": "cache",
+    "ds.cache_empty": "The datasheet cache is empty.",
+    "ds.cache_title": "Downloaded datasheets",
+    "ds.col.part": "Part",
+    "ds.col.size": "Size",
+    "ds.col.date": "Date",
+})

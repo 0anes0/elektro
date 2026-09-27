@@ -11,7 +11,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from elektro.i18n import t
-from elektro.ui import console, eng, fail, result_panel, theory
+from elektro.ui import console, eng, fail, json_mode, result_panel, theory
 from elektro.units import format_si
 
 app = typer.Typer(help=t("flt.help"), no_args_is_help=True)
@@ -23,28 +23,42 @@ def db(x: float) -> float:
     return 20 * math.log10(x) if x > 0 else -math.inf
 
 
-def response_table(h: Callable[[float], complex], f0: float,
-                   points=(0.1, 0.25, 0.5, 0.8, 1, 1.25, 2, 4, 10)) -> None:
-    """Frekans yanıtını (genlik/faz) metin tabanlı grafikle yazdırır."""
+def response(h: Callable[[float], complex], f0: float,
+             points=(0.1, 0.25, 0.5, 0.8, 1, 1.25, 2, 4, 10)) -> list:
+    """Seçili frekanslarda genlik (dB) ve faz (°)."""
+    out = []
+    for mult in points:
+        f = f0 * mult
+        val = h(f)
+        g = db(abs(val)) if abs(val) > 1e-6 else -math.inf
+        out.append({"f_hz": f, "gain_db": g, "phase_deg": math.degrees(cmath.phase(val)), "_mult": mult})
+    return out
+
+
+def print_response(points: list) -> None:
+    """Frekans yanıtını metin tabanlı grafikle yazdırır."""
+    if json_mode():
+        return
     tbl = Table(title=t("flt.response"), box=None, header_style="bold")
     tbl.add_column("f", justify="right")
     tbl.add_column(t("flt.gain"), justify="right")
     tbl.add_column(t("flt.phase"), justify="right")
     tbl.add_column("", no_wrap=True)
-    for mult in points:
-        f = f0 * mult
-        val = h(f)
-        g = db(abs(val)) if abs(val) > 1e-6 else -math.inf
+    for p in points:
+        g = p["gain_db"]
         # 0 dB'de 30 karakter, -60 dB'de 0 karakter
         width = max(0, min(30, round((g + 60) / 2))) if g != -math.inf else 0
-        style = "bold yellow" if mult == 1 else "green"
+        style = "bold yellow" if p["_mult"] == 1 else "green"
         tbl.add_row(
-            format_si(f, "Hz"), f"{g:6.1f} dB" if g != -math.inf else "  -∞ dB",
-            f"{math.degrees(cmath.phase(val)):6.1f}°",
-            f"[{style}]{'█' * width}[/]",
+            format_si(p["f_hz"], "Hz"), f"{g:6.1f} dB" if g != -math.inf else "  -∞ dB",
+            f"{p['phase_deg']:6.1f}°", f"[{style}]{'█' * width}[/]",
         )
     console.print()
     console.print(tbl)
+
+
+def _public(points: list) -> list:
+    return [{k: v for k, v in p.items() if not k.startswith("_")} for p in points]
 
 
 def _solve_first_order(r, x, fc, x_name, x_to_fc, fc_to_x, fc_to_r):
@@ -75,18 +89,20 @@ def rc(
         fc_to_x=lambda r, fc: 1 / (TWO_PI * r * fc),
         fc_to_r=lambda c, fc: 1 / (TWO_PI * c * fc),
     )
+    if high:
+        h = lambda f: 1j * f / fc / (1 + 1j * f / fc)
+    else:
+        h = lambda f: 1 / (1 + 1j * f / fc)
+    resp = response(h, fc)
     result_panel(t("flt.rc.title_high" if high else "flt.rc.title_low"), {
         t("flt.fc"): format_si(fc, "Hz"),
         t("flt.omega"): format_si(TWO_PI * fc, "rad/s"),
         t("flt.tau"): format_si(r * c, "s"),
         t("flt.r"): format_si(r, "Ω"),
         t("flt.c"): format_si(c, "F"),
-    })
-    if high:
-        h = lambda f: 1j * f / fc / (1 + 1j * f / fc)
-    else:
-        h = lambda f: 1 / (1 + 1j * f / fc)
-    response_table(h, fc)
+    }, data={"type": "highpass" if high else "lowpass", "fc_hz": fc, "tau_s": r * c,
+             "r_ohm": r, "c_f": c, "response": _public(resp)})
+    print_response(resp)
     theory(t("flt.rc.note1", phase="+45°" if high else "-45°"), t("flt.rc.note2"))
 
 
@@ -103,17 +119,19 @@ def rl(
         fc_to_x=lambda r, fc: r / (TWO_PI * fc),
         fc_to_r=lambda l, fc: TWO_PI * fc * l,
     )
+    if low:
+        h = lambda f: 1 / (1 + 1j * f / fc)
+    else:
+        h = lambda f: 1j * f / fc / (1 + 1j * f / fc)
+    resp = response(h, fc)
     result_panel(t("flt.rl.title_low" if low else "flt.rl.title_high"), {
         t("flt.fc"): format_si(fc, "Hz"),
         t("flt.tau"): format_si(l / r, "s"),
         t("flt.r"): format_si(r, "Ω"),
         t("flt.l"): format_si(l, "H"),
-    })
-    if low:
-        h = lambda f: 1 / (1 + 1j * f / fc)
-    else:
-        h = lambda f: 1j * f / fc / (1 + 1j * f / fc)
-    response_table(h, fc)
+    }, data={"type": "lowpass" if low else "highpass", "fc_hz": fc, "tau_s": l / r,
+             "r_ohm": r, "l_h": l, "response": _public(resp)})
+    print_response(resp)
 
 
 @app.command(help=t("flt.lc.help"))
@@ -138,7 +156,8 @@ def lc(
         t("flt.lc.z0"): format_si(math.sqrt(l / c), "Ω"),
         t("flt.l"): format_si(l, "H"),
         t("flt.c"): format_si(c, "F"),
-    })
+    }, data={"f0_hz": f, "reactance_ohm": TWO_PI * f * l, "z0_ohm": math.sqrt(l / c),
+             "l_h": l, "c_f": c})
     theory(t("flt.lc.note"))
 
 
@@ -155,15 +174,17 @@ def rlc(
     half = bw / 2
     f_lo = -half + math.sqrt(half ** 2 + f0 ** 2)
     f_hi = half + math.sqrt(half ** 2 + f0 ** 2)
+    h = lambda f: r / (r + 1j * TWO_PI * f * l + 1 / (1j * TWO_PI * f * c))
+    resp = response(h, f0)
     result_panel(t("flt.rlc.title"), {
         t("flt.center"): format_si(f0, "Hz"),
         t("flt.bw"): format_si(bw, "Hz"),
         t("flt.q"): f"{q:.3g}",
         t("flt.lower"): format_si(f_lo, "Hz"),
         t("flt.upper"): format_si(f_hi, "Hz"),
-    })
-    h = lambda f: r / (r + 1j * TWO_PI * f * l + 1 / (1j * TWO_PI * f * c))
-    response_table(h, f0)
+    }, data={"f0_hz": f0, "bandwidth_hz": bw, "q": q, "f_low_hz": f_lo, "f_high_hz": f_hi,
+             "response": _public(resp)})
+    print_response(resp)
     theory(t("flt.rlc.note"))
 
 
@@ -175,12 +196,6 @@ def notch(
 ):
     f0 = 1 / (TWO_PI * math.sqrt(l * c))
     q = r / (TWO_PI * f0 * l)
-    result_panel(t("flt.notch.title"), {
-        t("flt.notch.f0"): format_si(f0, "Hz"),
-        t("flt.q"): f"{q:.3g}",
-        t("flt.bw"): format_si(f0 / q, "Hz"),
-    })
-
     def h(f):
         w = TWO_PI * f
         denom = 1 - w * w * l * c
@@ -188,11 +203,19 @@ def notch(
             return 0j
         return r / (r + 1j * w * l / denom)
 
-    response_table(h, f0, points=(0.25, 0.5, 0.8, 0.9, 0.95, 1, 1.05, 1.1, 1.25, 2, 4))
+    resp = response(h, f0, points=(0.25, 0.5, 0.8, 0.9, 0.95, 1, 1.05, 1.1, 1.25, 2, 4))
+    result_panel(t("flt.notch.title"), {
+        t("flt.notch.f0"): format_si(f0, "Hz"),
+        t("flt.q"): f"{q:.3g}",
+        t("flt.bw"): format_si(f0 / q, "Hz"),
+    }, data={"f0_hz": f0, "q": q, "bandwidth_hz": f0 / q, "response": _public(resp)})
+    print_response(resp)
     theory(t("flt.notch.note"))
 
 
 @app.command(name="theory", help=t("flt.theory.help"))
 def theory_cmd():
+    if json_mode():
+        return
     console.print(Panel(t("flt.theory.body"), title=f"[bold]{t('flt.theory.title')}[/]",
                         border_style="bright_blue", expand=False))

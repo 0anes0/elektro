@@ -2,7 +2,7 @@
   <h1>⚡ ELEKTRO</h1>
   <p><i>A terminal toolkit for electrical & electronics engineering</i></p>
 
-  **English** · [Türkçe](README.tr.md)
+  **English** · [Türkçe](https://github.com/0anes0/elektro/blob/main/README.tr.md)
 
   ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
   ![License](https://img.shields.io/badge/license-GPLv3-green.svg)
@@ -62,8 +62,11 @@ Priority: `--lang` → `ELEKTRO_LANG` → saved setting (`~/.config/elektro/conf
 
 ## 🚀 Usage
 
-Run `elektro` for the command menu, `elektro COMMAND --help` for details, and
-`elektro helpall` for the full manual.
+Run `elektro` for the command menu, `elektro COMMAND --help` for details,
+`elektro helpall` or `man elektro` for the full manual.
+
+Every command accepts `--json` for machine-readable output:
+`elektro ohm -v 12 -r 1k --json`
 
 ### Basics
 
@@ -85,6 +88,10 @@ elektro logic convert 0xFF           # decimal/hex/binary/octal
 elektro logic convert --bits 8 -- -5 # two's complement
 elektro logic truth xor
 elektro logic expr "A & B | ~C"      # truth table of a boolean expression
+
+elektro switch bjt --ic 500m -v 3.3  # base resistor for an NPN switch
+elektro switch mosfet -v 10 --qg 40n -f 100k   # gate drive and losses
+elektro charge --r 10k --c 100u --v 5 --to 3.3 # RC charge time + curve
 ```
 
 Resistor colors can be given as IEC codes (`bk bn rd og ye gn bu vt gy wh gd sr`) or as names in
@@ -100,6 +107,18 @@ elektro divider --vin 5 --vout 3.3           # best E24 R1/R2 pairs
 elektro led --vs 12 --vf 3.1 -i 15m -n 3     # LED resistor + power rating
 elektro eseries 4k8                          # nearest standard values (E3-E192)
 elektro cap 104                              # capacitor code ↔ value
+```
+
+### Power & wiring
+
+```bash
+elektro regulator lm317 --vout 5             # R2 for an adjustable regulator
+elektro regulator 7805 --vin 12 -i 500m      # dissipation of a linear regulator
+elektro battery 2000 -i 15m                  # battery life
+elektro battery 1200 --active 45m --active-time 2 --sleep 20u --sleep-time 58
+elektro thermal -p 5 --rth-jc 3 --ta 50      # required heatsink
+elektro wire --awg 22 -l 3 -i 2              # AWG ↔ mm², voltage drop
+elektro trace -i 3                           # PCB trace width (IPC-2221)
 ```
 
 ### Filters
@@ -124,6 +143,28 @@ elektro rf link -f 868 -d 10 --tx 14 --sens -137   # link margin and max. range
 elektro rf wave -f 433.92                          # wavelength, antenna lengths
 elektro rf convert 14 dbm w
 elektro rf convert 1.5 vswr                        # |Γ|, return loss, mismatch loss
+elektro rf lora --sf 9 -p 20                       # LoRa time on air, sensitivity
+elektro rf fresnel -f 868 -d 10                    # Fresnel zone / antenna height
+elektro rf microstrip --z0 50 --h 1.6 --er 4.4     # 50 Ω trace width
+elektro rf coax lmr400 -f 2.4G -l 20m              # cable loss
+```
+
+### Embedded
+
+```bash
+elektro uart -c 16M -b 115200                # baud register and error (avr/stm32)
+elektro pwm -c 72M -f 20k -m stm32 -d 25     # prescaler, ARR, compare value
+elektro adc -b 12 --vref 3.3 --code 2048     # ADC code ↔ voltage
+elektro i2c --cb 200p -s 400k                # I²C pull-up range
+elektro crc "01 03 00 00 00 0A"              # CRC-8/16/32, Modbus, checksums
+```
+
+### Tools
+
+```bash
+elektro calc "12V / (4k7 + 1k)"              # calculator with engineering notation
+elektro calc "par(1k, 2k2, 4k7)" -u Ω
+elektro unit 25 c                            # °C/°F/K, mil/mm, dB, AWG …
 ```
 
 ### Datasheet downloader
@@ -133,11 +174,13 @@ elektro datasheet lm358
 elektro datasheet ams1117 --open       # download and open
 elektro datasheet esp32 --list         # show candidates without downloading
 elektro datasheet 2n2222 -o transistor.pdf
+elektro datasheet --history            # previously downloaded (cached) datasheets
 ```
 
 It checks manufacturer sites (TI, Espressif, onsemi, Diodes, Nexperia), then the LCSC/JLCPCB
 parts database, and finally DuckDuckGo. The download is verified to be a real PDF; if no source
-works, links for a manual search are printed.
+works, links for a manual search are printed. Downloads are cached in `~/.cache/elektro/`, so the
+same part is available instantly next time.
 
 ## 🧪 Development
 
@@ -150,6 +193,10 @@ python3 -m venv .venv
 Translations live in `elektro/i18n/` (`en.py` is the source). The tests check that every language
 has every key with the same placeholders.
 
+Releasing to PyPI (package name `elektro-cli`): add a *Trusted Publisher* for this repository on
+PyPI (workflow `publish.yml`, environment `pypi`), then push a tag matching `__version__`:
+`git tag v0.4.0 && git push origin v0.4.0`.
+
 ## 📄 License
 
-[GPLv3](LICENSE) © Ahmet Enes KAYMAK
+[GPLv3](https://github.com/0anes0/elektro/blob/main/LICENSE) © Ahmet Enes KAYMAK

@@ -10,7 +10,7 @@ import typer
 from rich.table import Table
 
 from elektro.i18n import pct, t
-from elektro.ui import console, eng, fail, result_panel, warn
+from elektro.ui import emit, eng, fail, result_panel, warn
 from elektro.units import (SERIES_NAMES, format_si, nearest_standard, normalize_series,
                            parse_value, series_neighbors, series_values)
 
@@ -38,7 +38,10 @@ def _combine(values, capacitor, inductor, parallel):
     total = parallel_sum(values) if use_reciprocal else series_sum(values)
     rows = {t("combine.item", n=k + 1): format_si(v, unit) for k, v in enumerate(values)}
     rows[t("combine.total")] = format_si(total, unit)
-    result_panel(t("combine.parallel_title" if parallel else "combine.series_title"), rows)
+    kind = "capacitor" if capacitor else "inductor" if inductor else "resistor"
+    result_panel(t("combine.parallel_title" if parallel else "combine.series_title"), rows,
+                 data={"connection": "parallel" if parallel else "series", "component": kind,
+                       "values": values, "total": total})
 
 
 def _cap_opt():
@@ -116,7 +119,9 @@ def divider(
         }
         if load:
             rows[t("div.unloaded")] = format_si(vin * r2 / (r1 + r2), "V")
-        result_panel(t("div.title"), rows)
+        result_panel(t("div.title"), rows, data={
+            "vin_v": vin, "r1_ohm": r1, "r2_ohm": r2, "load_ohm": load, "vout_v": out,
+            "ratio": out / vin, "current_a": i, "p_r1_w": i * i * r1, "p_r2_w": out ** 2 / r2})
         return
 
     if vout is None:
@@ -134,7 +139,7 @@ def divider(
     for b in best:
         tbl.add_row(format_si(b["r1"], "Ω"), format_si(b["r2"], "Ω"), format_si(b["vout"], "V"),
                     pct(f"{b['error'] * 100:.2f}"), format_si(vin / (b["r1"] + b["r2"]), "A"))
-    console.print(tbl)
+    emit(tbl, [{**b, "current_a": vin / (b["r1"] + b["r2"])} for b in best])
 
 
 # --- LED ------------------------------------------------------------------------
@@ -170,7 +175,9 @@ def led(
         t("led.power"): format_si(p, "W"),
         t("led.rating"): f"{rating:g} W" if rating else t("led.rating_high"),
         t("led.efficiency"): pct(f"{vf * count / vs * 100:.0f}"),
-    })
+    }, data={"calculated_ohm": r, "suggested_ohm": std, "series": normalize_series(series),
+             "current_a": i_real, "resistor_power_w": p, "recommended_rating_w": rating,
+             "efficiency": vf * count / vs})
 
 
 # --- E serisi --------------------------------------------------------------------
@@ -190,12 +197,15 @@ def eseries(
     for key in ("eseries.col.series", "eseries.col.lower", "eseries.col.upper",
                 "eseries.col.nearest", "eseries.col.error"):
         tbl.add_column(t(key), justify="right")
+    records = []
     for name in names:
         lo, hi = series_neighbors(value, name)
         near = nearest_standard(value, name)
         tbl.add_row(name, format_si(lo), format_si(hi), f"[bold]{format_si(near)}[/]",
                     pct(f"{(near - value) / value * 100:+.2f}"))
-    console.print(tbl)
+        records.append({"series": name, "lower": lo, "upper": hi, "nearest": near,
+                        "error": (near - value) / value})
+    emit(tbl, records)
 
 
 # --- Kondansatör kodu --------------------------------------------------------------
@@ -244,7 +254,8 @@ def cap(code: str = typer.Argument(..., help=t("cap.arg"))):
                 "pF": f"{value / 1e-12:g} pF"}
         if tol:
             rows[t("cap.tolerance")] = tol
-        result_panel(t("cap.title"), rows)
+        result_panel(t("cap.title"), rows, data={"code": code.upper(), "capacitance_f": value,
+                                                 "tolerance": tol})
         return
     try:
         value = parse_value(code)
@@ -252,4 +263,5 @@ def cap(code: str = typer.Argument(..., help=t("cap.arg"))):
         fail(str(e))
     if value >= 1e-3:
         warn(t("cap.not_ceramic"))
-    result_panel(t("cap.title"), {t("cap.value"): format_si(value, "F"), t("cap.code"): encode_cap(value)})
+    result_panel(t("cap.title"), {t("cap.value"): format_si(value, "F"), t("cap.code"): encode_cap(value)},
+                 data={"capacitance_f": value, "code": encode_cap(value)})

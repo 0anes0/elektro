@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import io
 import os
 import re
@@ -23,8 +24,9 @@ from elektro import REPO_URL, __version__
 from elektro.i18n import (LANGUAGES, config_path, get_language, normalize, save_language,
                           set_language, t)
 from elektro.modules import datasheet as datasheet_mod
-from elektro.modules import digital, filters, ohm, passive, resistor, rf, timer555
-from elektro.ui import console, fail
+from elektro.modules import (analog, digital, embedded, filters, ohm, passive, power, resistor, rf,
+                             timer555, tools, wiring)
+from elektro.ui import console, fail, set_json
 
 
 def _localize_typer() -> None:
@@ -60,13 +62,16 @@ app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 
-BASIC, PASSIVE, SIGNAL, TOOLS = (t("panel.basic"), t("panel.passive"),
-                                 t("panel.signal"), t("panel.tools"))
+BASIC, PASSIVE, POWER, SIGNAL, EMBEDDED, TOOLS = (
+    t("panel.basic"), t("panel.passive"), t("panel.power"), t("panel.signal"),
+    t("panel.embedded"), t("panel.tools"))
 
 app.command(rich_help_panel=BASIC, help=t("ohm.help"))(ohm.ohm)
 app.add_typer(resistor.app, name="resistor", rich_help_panel=BASIC)
 app.add_typer(timer555.app, name="555", rich_help_panel=BASIC)
 app.add_typer(digital.app, name="logic", rich_help_panel=BASIC)
+app.add_typer(analog.switch_app, name="switch", rich_help_panel=BASIC)
+app.command(rich_help_panel=BASIC, help=t("chg.help"))(analog.charge)
 
 app.command(rich_help_panel=PASSIVE, help=t("combine.series.help"))(passive.series)
 app.command(rich_help_panel=PASSIVE, help=t("combine.parallel.help"))(passive.parallel)
@@ -75,10 +80,24 @@ app.command(rich_help_panel=PASSIVE, help=t("led.help"))(passive.led)
 app.command(rich_help_panel=PASSIVE, help=t("eseries.help"))(passive.eseries)
 app.command(rich_help_panel=PASSIVE, help=t("cap.help"))(passive.cap)
 
+app.command(rich_help_panel=POWER, help=t("reg.help"))(power.regulator)
+app.command(rich_help_panel=POWER, help=t("bat.help"))(power.battery)
+app.command(rich_help_panel=POWER, help=t("th.help"))(power.thermal)
+app.command(rich_help_panel=POWER, help=t("wire.help"))(wiring.wire)
+app.command(rich_help_panel=POWER, help=t("trace.help"))(wiring.trace)
+
 app.add_typer(filters.app, name="filter", rich_help_panel=SIGNAL)
 app.add_typer(rf.app, name="rf", rich_help_panel=SIGNAL)
 
+app.command(rich_help_panel=EMBEDDED, help=t("uart.help"))(embedded.uart)
+app.command(rich_help_panel=EMBEDDED, help=t("pwm.help"))(embedded.pwm)
+app.command(rich_help_panel=EMBEDDED, help=t("adc.help"))(embedded.adc)
+app.command(rich_help_panel=EMBEDDED, help=t("i2c.help"))(embedded.i2c)
+app.command(rich_help_panel=EMBEDDED, help=t("crc.help"))(embedded.crc)
+
 app.command(rich_help_panel=TOOLS, help=t("ds.help"))(datasheet_mod.datasheet)
+app.command(rich_help_panel=TOOLS, help=t("calc.help"))(tools.calc)
+app.command(rich_help_panel=TOOLS, help=t("unit.help"))(tools.unit)
 
 
 MENU = [
@@ -87,6 +106,8 @@ MENU = [
         ("resistor", "menu.resistor", "elektro resistor bn bk rd gd"),
         ("555", "menu.555", "elektro 555 astable -f 1k --c 10n"),
         ("logic", "menu.logic", 'elektro logic expr "A & ~B"'),
+        ("switch", "menu.switch", "elektro switch bjt --ic 500m -v 3.3"),
+        ("charge", "menu.charge", "elektro charge --r 10k --c 100u --v 5"),
     ],
     [
         ("series/parallel", "menu.combine", "elektro parallel 1k 2k2"),
@@ -96,10 +117,26 @@ MENU = [
         ("cap", "menu.cap", "elektro cap 104"),
     ],
     [
-        ("filter", "menu.filter", "elektro filter rc --fc 1k --c 10n"),
-        ("rf", "menu.rf", "elektro rf link -f 868 -d 10"),
+        ("regulator", "menu.regulator", "elektro regulator lm317 --vout 5"),
+        ("battery", "menu.battery", "elektro battery 2000 -i 15m"),
+        ("thermal", "menu.thermal", "elektro thermal -p 2 --rth-jc 5"),
+        ("wire", "menu.wire", "elektro wire --awg 22 -l 3 -i 2"),
+        ("trace", "menu.trace", "elektro trace -i 3"),
     ],
     [
+        ("filter", "menu.filter", "elektro filter rc --fc 1k --c 10n"),
+        ("rf", "menu.rf", "elektro rf lora --sf 9 -p 20"),
+    ],
+    [
+        ("uart", "menu.uart", "elektro uart -c 16M -b 115200"),
+        ("pwm", "menu.pwm", "elektro pwm -c 72M -f 20k -m stm32"),
+        ("adc", "menu.adc", "elektro adc -b 12 --vref 3.3 --code 2048"),
+        ("i2c", "menu.i2c", "elektro i2c --cb 200p"),
+        ("crc", "menu.crc", 'elektro crc "01 03 00 00 00 0A"'),
+    ],
+    [
+        ("calc", "menu.calc", 'elektro calc "12 / (4k7 + 1k)"'),
+        ("unit", "menu.unit", "elektro unit 25 c"),
         ("datasheet", "menu.datasheet", "elektro datasheet lm358"),
         ("helpall", "menu.helpall", "elektro helpall"),
         ("language", "menu.language", "elektro language en"),
@@ -138,13 +175,29 @@ def main(
                                            is_eager=True, help=t("cli.opt.version")),
     lang: Optional[str] = typer.Option(None, "--lang", metavar="en|tr|de|ru",
                                        help=t("cli.opt.lang")),
+    json_out: bool = typer.Option(False, "--json", help=t("cli.opt.json")),
 ):
     # Dil, yardım metinleri üretilmeden önce elektro.i18n tarafından argv'den okunur;
     # burada yalnızca geçerliliği kontrol edilir.
     if lang is not None and normalize(lang) is None:
         fail(t("lang.unknown", code=lang, options=", ".join(LANGUAGES)))
+    if json_out:
+        set_json(True)
     if ctx.invoked_subcommand is None:
         show_menu()
+
+
+def run() -> None:
+    """Konsol giriş noktası. `--json` komutun herhangi bir yerine yazılabilsin diye önden alınır."""
+    args = sys.argv[1:]
+    if "--" in args:
+        head, tail = args[:args.index("--")], args[args.index("--"):]
+    else:
+        head, tail = args, []
+    if "--json" in head:
+        head = [a for a in head if a != "--json"]
+        set_json(True)
+    app(args=head + tail, prog_name="elektro")
 
 
 # --- language ------------------------------------------------------------------------
@@ -244,6 +297,48 @@ def helpall():
         pass
 
 
+# --- man sayfası ------------------------------------------------------------------------
+
+def _roff(text: str) -> str:
+    text = text.replace("\\", "\\e").replace("-", "\\-")
+    return "\n".join(("\\&" + line) if line[:1] in (".", "'") else line for line in text.splitlines())
+
+
+def render_manpage() -> str:
+    root = typer.main.get_command(app)
+    date = datetime.date.today().isoformat()
+    out = [
+        f'.TH ELEKTRO 1 "{date}" "elektro {__version__}" "{t("manual.title")}"',
+        ".SH NAME",
+        f"elektro \\- {_roff(t('cli.help'))}",
+        ".SH SYNOPSIS",
+        ".B elektro",
+        "[\\fB\\-\\-lang\\fR \\fICODE\\fR] [\\fB\\-\\-json\\fR] \\fICOMMAND\\fR [\\fIOPTIONS\\fR]",
+        ".SH DESCRIPTION",
+        _roff(t("cli.help_long")),
+        ".SH COMMANDS",
+    ]
+    for path, cmd in _walk(root, ["elektro"]):
+        if path[-1] == "helpall":
+            continue
+        out.append(f".SS {_roff(' '.join(path))}")
+        out += [".nf", _roff((cmd.help or "").split("\f")[0].strip()), ".fi"]
+        for p in cmd.params:
+            if p.name == "help":
+                continue
+            names, h = _param_line(p)
+            out += [".TP", f"\\fB{_roff(names)}\\fR", _roff(h) or "\\&"]
+    out += [".SH FILES", "~/.config/elektro/config.json, ~/.cache/elektro/datasheets/",
+            ".SH SEE ALSO", REPO_URL]
+    return "\n".join(out) + "\n"
+
+
+@app.command(hidden=True)
+def manpage():
+    """Man sayfasını (roff) yazdırır: elektro manpage > elektro.1"""
+    sys.stdout.write(render_manpage())
+
+
 # --- update ----------------------------------------------------------------------------
 
 INIT_URL = REPO_URL.replace("github.com", "raw.githubusercontent.com") + "/main/elektro/__init__.py"
@@ -261,6 +356,19 @@ def _install_kind() -> str:
     if "pipx" in prefix.parts:
         return "pipx"
     return "other"
+
+
+def _refresh_manpage() -> None:
+    """Kurulu man sayfası varsa yeni sürümle yeniler."""
+    base = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    page = Path(base) / "man" / "man1" / "elektro.1"
+    if page.exists():
+        try:
+            out = subprocess.run([sys.executable, "-m", "elektro", "manpage"], capture_output=True, text=True)
+            if out.returncode == 0:
+                page.write_text(out.stdout, encoding="utf-8")
+        except OSError:
+            pass
 
 
 @app.command(rich_help_panel=TOOLS, help=t("upd.help"))
@@ -289,10 +397,17 @@ def update(force: bool = typer.Option(False, "--force", help=t("upd.opt.force"))
         raise typer.Exit(1)
 
     console.print(t("upd.updating"))
-    cmd = [sys.executable, "-m", "pip", "install", "--quiet", "--disable-pip-version-check",
-           "--upgrade", "--force-reinstall", TARBALL_URL]
-    if subprocess.call(cmd) != 0:
+    pip = [sys.executable, "-m", "pip", "--disable-pip-version-check"]
+    # 0.4 öncesi paket adı "elektro" idi; aynı dosyaları paylaştıkları için önce eskisi kaldırılır.
+    try:
+        from importlib.metadata import PackageNotFoundError, distribution
+        distribution("elektro")
+        subprocess.call(pip + ["uninstall", "--quiet", "--yes", "elektro"])
+    except PackageNotFoundError:
+        pass
+    if subprocess.call(pip + ["install", "--quiet", "--upgrade", "--force-reinstall", TARBALL_URL]) != 0:
         fail(t("upd.failed"))
+    _refresh_manpage()
     console.print(f"[bold green]✓ {t('upd.done', version=latest)}[/]")
 
 

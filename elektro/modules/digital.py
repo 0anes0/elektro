@@ -10,7 +10,7 @@ import typer
 from rich.table import Table
 
 from elektro.i18n import t
-from elektro.ui import console, fail, result_panel
+from elektro.ui import console, emit, fail, json_mode, print_json, result_panel
 
 app = typer.Typer(help=t("dig.help"), no_args_is_help=True)
 
@@ -78,6 +78,9 @@ def convert(
 
     if to_base_:
         try:
+            if json_mode():
+                print_json({"input": value, "value": n, "base": to_base_, "result": to_base(raw, to_base_)})
+                return
             console.print(f"[cyan]{value}[/] = [bold green]{to_base(raw, to_base_)}[/] "
                           f"({t('dig.conv.base', base=to_base_)})")
         except ValueError as e:
@@ -97,7 +100,8 @@ def convert(
         rows[t("dig.unsigned")] = str(raw)
     if 32 <= raw < 127:
         rows["ASCII"] = repr(chr(raw))
-    result_panel(t("dig.conv.title"), rows)
+    result_panel(t("dig.conv.title"), rows, data={
+        "value": n, "unsigned": raw, "bits": width, "hex": to_base(raw, 16), "bin": b, "oct": to_base(raw, 8)})
 
 
 GATES = {
@@ -126,6 +130,9 @@ def truth(
     if a is not None and (unary or b is not None):
         out = fn(a) if unary else fn(a, b)
         args = f"A={a}" if unary else f"A={a}, B={b}"
+        if json_mode():
+            print_json({"gate": gate, "a": a, "b": None if unary else b, "out": out})
+            return
         console.print(f"[cyan]{gate.upper()}[/]({args}) = [bold green]{out}[/]")
         return
 
@@ -134,9 +141,11 @@ def truth(
     if not unary:
         tbl.add_column("B", justify="center")
     tbl.add_column("Y", justify="center", style="bold green")
+    records = []
     for inp in ([(0,), (1,)] if unary else itertools.product((0, 1), repeat=2)):
         tbl.add_row(*map(str, inp), str(fn(*inp)))
-    console.print(tbl)
+        records.append({**dict(zip("ab", inp)), "out": fn(*inp)})
+    emit(tbl, records)
 
 
 # --- Boolean ifade -----------------------------------------------------------------
@@ -191,10 +200,15 @@ def expr(expression: str = typer.Argument(..., help=t("dig.expr.arg"))):
         tbl.add_column(n, justify="center")
     tbl.add_column("Y", justify="center", style="bold green")
     minterms: List[int] = []
+    rows = []
     for idx, combo in enumerate(itertools.product((0, 1), repeat=len(names))):
         out = evaluate(code, dict(zip(names, combo)))
         if out:
             minterms.append(idx)
         tbl.add_row(*map(str, combo), str(out))
+        rows.append({**dict(zip(names, combo)), "Y": out})
+    if json_mode():
+        print_json({"expression": expression, "variables": names, "rows": rows, "minterms": minterms})
+        return
     console.print(tbl)
     console.print(f"[cyan]Σm[/]({', '.join(map(str, minterms)) or '-'})")

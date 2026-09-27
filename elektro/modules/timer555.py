@@ -56,7 +56,8 @@ def astable(
             "R1 / R2 (E24)": f"{format_si(r1s, 'Ω')} / {format_si(r2s, 'Ω')}",
             t("555.real_freq"): format_si(real["freq"], "Hz"),
             t("555.real_duty"): pct(f"{real['duty'] * 100:.1f}"),
-        })
+        }, data={"r1_calc_ohm": r1, "r2_calc_ohm": r2, "r1_ohm": r1s, "r2_ohm": r2s, "c_f": c,
+                 "freq_hz": real["freq"], "duty": real["duty"]})
         if r1 < 1e3 or r2 > 1e6:
             theory(t("555.range_warn"))
         return
@@ -72,7 +73,8 @@ def astable(
         t("555.t_high"): format_si(tm["t_high"], "s"),
         t("555.t_low"): format_si(tm["t_low"], "s"),
         t("555.duty"): pct(f"{tm['duty'] * 100:.1f}"),
-    })
+    }, data={"r1_ohm": r1, "r2_ohm": r2, "c_f": c, "freq_hz": tm["freq"], "period_s": tm["period"],
+             "t_high_s": tm["t_high"], "t_low_s": tm["t_low"], "duty": tm["duty"]})
 
 
 @app.command(help=t("555.mono.help"))
@@ -96,4 +98,4 @@ def mono(
         t("555.pulse"): format_si(t_, "s"),
         "R": f"{format_si(r, 'Ω')}  (E24: {format_si(nearest_standard(r, 'E24'), 'Ω')})",
         "C": format_si(c, "F"),
-    })
+    }, data={"pulse_s": t_, "r_ohm": r, "c_f": c})

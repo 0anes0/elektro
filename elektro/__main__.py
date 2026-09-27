@@ -1,3 +1,3 @@
-from elektro.cli import app
+from elektro.cli import run
 
-app(prog_name="elektro")
+run()

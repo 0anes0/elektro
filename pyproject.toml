@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "elektro"
+name = "elektro-cli"
 dynamic = ["version"]
 description = "Terminal tabanlı Elektrik-Elektronik Mühendisliği aracı"
 readme = "README.md"
@@ -36,7 +36,7 @@ Homepage = "https://github.com/0anes0/elektro"
 Issues = "https://github.com/0anes0/elektro/issues"
 
 [project.scripts]
-elektro = "elektro.cli:app"
+elektro = "elektro.cli:run"
 
 [tool.setuptools.dynamic]
 version = { attr = "elektro.__version__" }

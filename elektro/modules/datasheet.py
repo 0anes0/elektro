@@ -18,6 +18,7 @@ import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator, List, Optional
 from urllib.parse import parse_qs, quote_plus, unquote, urljoin, urlparse
@@ -26,9 +27,10 @@ import requests
 import typer
 from bs4 import BeautifulSoup
 from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TransferSpeedColumn
+from rich.table import Table
 
 from elektro.i18n import t
-from elektro.ui import console, fail
+from elektro.ui import console, err_console, fail, json_mode, print_json
 
 USER_AGENT = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
@@ -173,7 +175,7 @@ def iter_candidates(session: requests.Session, part: str, verbose: bool = True) 
 
     def step(title):
         if verbose:
-            console.print(f"[dim]• {title}[/]")
+            _out().print(f"[dim]• {title}[/]")
 
     step(t("ds.step.maker"))
     yield from fresh(manufacturer_candidates(session, part))
@@ -224,7 +226,7 @@ def fetch_pdf(session: requests.Session, url: str, dest: Path, depth: int = 0) -
             try:
                 with tmp, Progress(
                     TextColumn("  [cyan]{task.description}"), BarColumn(), DownloadColumn(),
-                    TransferSpeedColumn(), console=console, transient=True,
+                    TransferSpeedColumn(), console=_out(), transient=True,
                 ) as progress:
                     task = progress.add_task(dest.name, total=total)
                     tmp.write(first)
@@ -261,7 +263,7 @@ def open_file(path: Path) -> None:
     if shutil.which(opener):
         subprocess.Popen([opener, str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
-        console.print(f"[yellow]{t('ds.no_opener', opener=opener, path=path)}[/]")
+        _out().print(f"[yellow]{t('ds.no_opener', opener=opener, path=path)}[/]")
 
 
 def manual_links(part: str) -> List[str]:
@@ -274,73 +276,143 @@ def manual_links(part: str) -> List[str]:
     ]
 
 
+# --- Önbellek -------------------------------------------------------------------
+
+def cache_dir() -> Path:
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    return Path(base) / "elektro" / "datasheets"
+
+
+def safe_name(part: str) -> str:
+    return re.sub(r"[^\w.-]", "_", part.strip().lower())
+
+
+def show_history() -> None:
+    files = sorted(cache_dir().glob("*.pdf"), key=lambda f: f.stat().st_mtime, reverse=True)
+    if json_mode():
+        print_json([{"part": f.stem, "path": str(f), "size_bytes": f.stat().st_size,
+                     "modified": f.stat().st_mtime} for f in files])
+        return
+    if not files:
+        console.print(f"[dim]{t('ds.cache_empty')}[/]")
+        return
+    tbl = Table(title=t("ds.cache_title"), header_style="bold")
+    tbl.add_column(t("ds.col.part"), style="cyan")
+    tbl.add_column(t("ds.col.size"), justify="right")
+    tbl.add_column(t("ds.col.date"))
+    for f in files:
+        st = f.stat()
+        tbl.add_row(f.stem, f"{st.st_size / 1024:.0f} KB", datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"))
+    console.print(tbl)
+    console.print(f"[dim]{cache_dir()}[/]")
+
+
+def _store_in_cache(src: Path, name: str) -> None:
+    try:
+        cache_dir().mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, cache_dir() / f"{name}.pdf")
+    except OSError:
+        pass        # önbellek yazılamazsa indirme yine de başarılıdır
+
+
 # --- Komut -----------------------------------------------------------------------
 
+def _out():
+    """JSON modunda ilerleme mesajları stderr'e gider, stdout yalnızca JSON içerir."""
+    return err_console if json_mode() else console
+
+
+def _done(dest: Path, source: str, open_after: bool) -> None:
+    size = dest.stat().st_size
+    if json_mode():
+        print_json({"path": str(dest), "source": source, "size_bytes": size})
+    else:
+        console.print(f"[bold green]✓ {t('ds.downloaded')}[/] [dim]({size / 1024:.0f} KB, {source})[/]")
+        console.print(f"  {dest}")
+    if open_after:
+        open_file(dest)
+
+
 def datasheet(
-    part: str = typer.Argument(..., help=t("ds.arg.part")),
+    part: Optional[str] = typer.Argument(None, help=t("ds.arg.part")),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help=t("ds.opt.output")),
     open_after: bool = typer.Option(False, "--open", help=t("ds.opt.open")),
     list_only: bool = typer.Option(False, "--list", "-l", help=t("ds.opt.list")),
     force: bool = typer.Option(False, "--force", "-f", help=t("ds.opt.force")),
     max_try: int = typer.Option(15, "--max", "-n", help=t("ds.opt.max")),
+    history: bool = typer.Option(False, "--history", help=t("ds.opt.history")),
 ):
-    part = part.strip()
+    if history:
+        show_history()
+        return
+    part = (part or "").strip()
     if not part:
         fail(t("ds.empty"))
     session = make_session()
+    out = _out()
 
     if list_only:
-        console.print(f"[bold]{t('ds.candidates', part=part)}[/]\n")
-        found = False
+        found = []
         for i, c in enumerate(iter_candidates(session, part, verbose=False), 1):
-            found = True
-            console.print(f"{i:>2}. [cyan]{c.source:<17}[/] {c.label}\n    [dim]{c.url}[/]")
+            found.append(c)
             if i >= max_try:
                 break
+        if json_mode():
+            print_json([{"source": c.source, "label": c.label, "url": c.url} for c in found])
+        else:
+            console.print(f"[bold]{t('ds.candidates', part=part)}[/]\n")
+            for i, c in enumerate(found, 1):
+                console.print(f"{i:>2}. [cyan]{c.source:<17}[/] {c.label}\n    [dim]{c.url}[/]")
         if not found:
-            console.print(f"[red]{t('ds.no_candidates')}[/]")
+            out.print(f"[red]{t('ds.no_candidates')}[/]")
             raise typer.Exit(1)
         return
 
-    safe = re.sub(r"[^\w.-]", "_", part.lower())
-    dest = (output or Path(f"{safe}_datasheet.pdf")).expanduser()
+    name = safe_name(part)
+    dest = (output or Path(f"{name}_datasheet.pdf")).expanduser()
     if dest.is_dir():
-        dest = dest / f"{safe}_datasheet.pdf"
+        dest = dest / f"{name}_datasheet.pdf"
     dest = dest.resolve()
     if dest.exists() and not force:
-        console.print(f"[yellow]{t('ds.exists')}:[/] {dest}\n[dim]{t('ds.use_force')}[/]")
+        out.print(f"[yellow]{t('ds.exists')}:[/] {dest}\n[dim]{t('ds.use_force')}[/]")
+        if json_mode():
+            print_json({"path": str(dest), "source": "existing", "size_bytes": dest.stat().st_size})
         if open_after:
             open_file(dest)
         return
     if not dest.parent.is_dir():
         fail(t("ds.no_dir", path=dest.parent))
 
-    console.print(f"[bold]🔍 {t('ds.searching', part=part)}[/]")
+    cached = cache_dir() / f"{name}.pdf"
+    if cached.is_file() and not force:
+        shutil.copy2(cached, dest)
+        out.print(f"[dim]{t('ds.from_cache')}[/]")
+        _done(dest, t("ds.cache_source"), open_after)
+        return
+
+    out.print(f"[bold]🔍 {t('ds.searching', part=part)}[/]")
     tried = 0
     try:
         for cand in iter_candidates(session, part):
             tried += 1
-            console.print(f"  [dim]{tried:>2}.[/] {cand.source}: {cand.label or urlparse(cand.url).netloc}")
+            out.print(f"  [dim]{tried:>2}.[/] {cand.source}: {cand.label or urlparse(cand.url).netloc}")
             real_url = fetch_pdf(session, cand.url, dest)
             if real_url:
-                size = dest.stat().st_size
-                console.print(f"[bold green]✓ {t('ds.downloaded')}[/] [dim]({size / 1024:.0f} KB, {urlparse(real_url).netloc})[/]")
-                console.print(f"  {dest}")
-                if open_after:
-                    open_file(dest)
+                _store_in_cache(dest, name)
+                _done(dest, urlparse(real_url).netloc, open_after)
                 return
-            console.print(f"      [dim]{t('ds.try_next')}[/]")
+            out.print(f"      [dim]{t('ds.try_next')}[/]")
             if tried >= max_try:
                 break
     except KeyboardInterrupt:
-        console.print(f"\n[yellow]{t('ds.cancelled')}[/]")
+        out.print(f"\n[yellow]{t('ds.cancelled')}[/]")
         raise typer.Exit(130)
 
     if tried == 0:
-        console.print(f"\n[bold red]{t('ds.nothing')}[/] {t('ds.check_net')}")
+        out.print(f"\n[bold red]{t('ds.nothing')}[/] {t('ds.check_net')}")
     else:
-        console.print(f"\n[bold red]{t('ds.all_failed')}[/]")
-    console.print(f"[dim]{t('ds.manual')}[/]")
+        out.print(f"\n[bold red]{t('ds.all_failed')}[/]")
+    out.print(f"[dim]{t('ds.manual')}[/]")
     for link in manual_links(part):
-        console.print(f"  {link}")
+        out.print(f"  {link}")
     raise typer.Exit(1)

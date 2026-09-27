@@ -12,7 +12,7 @@ from rich.table import Table
 from rich.text import Text
 
 from elektro.i18n import get_language, pct, t, upper
-from elektro.ui import console, default_group, fail, result_panel
+from elektro.ui import console, default_group, fail, json_mode, print_json, result_panel
 from elektro.units import E_SERIES_BASE, format_si, nearest_standard, parse_value
 
 app = typer.Typer(
@@ -202,7 +202,10 @@ def decode(bands: List[str] = typer.Argument(..., help=t("res.decode.arg"))):
     if res["tempco"]:
         rows[t("res.tempco")] = f"{res['tempco']} ppm/K"
     rows[t("res.bands")] = _band_strip(res["bands"])
-    result_panel(t("res.title"), rows)
+    result_panel(t("res.title"), rows, data={
+        "resistance_ohm": v, "tolerance_pct": tol, "min_ohm": v * (1 - tol / 100),
+        "max_ohm": v * (1 + tol / 100), "tempco_ppm": res["tempco"],
+        "bands": [b.names["en"] for b in res["bands"]]})
 
 
 @app.command(help=t("res.encode.help"))
@@ -230,7 +233,10 @@ def encode(
     std = nearest_standard(value, series)
     if not math.isclose(std, value, rel_tol=1e-6):
         rows[t("res.nearest_std")] = f"{format_si(std, 'Ω')} ({series})"
-    result_panel(t("res.encode.title"), rows)
+    result_panel(t("res.encode.title"), rows, data={
+        "resistance_ohm": actual, "requested_ohm": value, "tolerance_pct": tolerance,
+        "bands": [c.names["en"] for c in colors], "codes": [c.code_iec for c in colors],
+        "nearest_standard_ohm": std, "series": series})
 
 
 @app.command(help=t("res.smd.help"))
@@ -239,7 +245,8 @@ def smd(code: str = typer.Argument(..., help=t("res.smd.arg"))):
         value = decode_smd(code)
     except ValueError as e:
         fail(str(e))
-    result_panel(t("res.smd.title"), {t("res.code"): code.upper(), t("res.value"): format_si(value, "Ω")})
+    result_panel(t("res.smd.title"), {t("res.code"): code.upper(), t("res.value"): format_si(value, "Ω")},
+                 data={"code": code.upper(), "resistance_ohm": value})
 
 
 @app.command(help=t("res.table.help"))
@@ -248,6 +255,11 @@ def table():
 
 
 def show_table():
+    if json_mode():
+        print_json([{"color": c.names["en"], "code": c.code_iec, "code_tr": c.code_tr,
+                     "digit": c.digit, "multiplier": c.multiplier, "tolerance_pct": c.tolerance,
+                     "tempco_ppm": c.tempco} for c in COLORS if c is not NONE])
+        return
     tbl = Table(title=t("res.table.title"), header_style="bold")
     for key in ("res.col.code", "res.col.color", "res.col.digit", "res.col.mult", "res.col.tol"):
         tbl.add_column(t(key), justify="left" if key == "res.col.color" else "center")

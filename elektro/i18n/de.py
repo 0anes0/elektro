@@ -560,3 +560,468 @@ MESSAGES = {
     "ds.all_failed": "Von keinem Kandidaten konnte ein PDF geladen werden.",
     "ds.manual": "Manuell suchen:",
 }
+
+# --- 0.4: neue Befehle ---------------------------------------------------------------------
+MESSAGES.update({
+    "cli.opt.json": "Ergebnisse als JSON ausgeben (für Skripte)",
+    "panel.power": "Leistung & Leitungen",
+    "panel.embedded": "Embedded",
+    "menu.switch": "Transistor als Schalter",
+    "menu.charge": "RC/RL-Ladekurve",
+    "menu.regulator": "Spannungsregler",
+    "menu.battery": "Akkulaufzeit",
+    "menu.thermal": "Wärme & Kühlkörper",
+    "menu.wire": "Leiterquerschnitt, Spannungsabfall",
+    "menu.trace": "Leiterbahnbreite",
+    "menu.uart": "UART-Baudfehler",
+    "menu.pwm": "Timer/PWM-Register",
+    "menu.adc": "ADC Spannung ↔ Code",
+    "menu.i2c": "I²C-Pull-up-Widerstand",
+    "menu.crc": "CRC / Prüfsumme",
+    "menu.calc": "Rechner mit Einheiten",
+    "menu.unit": "Einheitenumrechner",
+    "time.min": "min",
+    "time.hours": "Stunden",
+    "time.days": "Tage",
+    "time.months": "Monate",
+
+    # Regler
+    "reg.help": (
+        "Spannungsregler: Widerstände bei einstellbaren, Verlustleistung bei linearen Reglern.\n\n"
+        "Einstellbar: lm317, lm1117, ams1117, lm2596, xl4015, mp1584\n"
+        "Fest: 7805, 7812, ams1117-3.3 …\n\n"
+        "Beispiele:\n"
+        "  elektro regulator lm317 --vout 5\n"
+        "  elektro regulator lm317 --r1 240 --r2 720\n"
+        "  elektro regulator 7805 --vin 12 -i 500m\n"
+        "  elektro regulator ams1117-3.3 --vin 5 -i 300m"
+    ),
+    "reg.arg": "Regler, z. B. lm317, 7805, ams1117-3.3",
+    "reg.opt.vout": "Gewünschte Ausgangsspannung (einstellbare Regler)",
+    "reg.opt.vin": "Eingangsspannung",
+    "reg.opt.iout": "Laststrom",
+    "reg.opt.r1": "R1 (zwischen OUT und ADJ/FB); Standard: Datenblattwert",
+    "reg.opt.r2": "R2 (zwischen ADJ/FB und Masse) — berechnet Vout",
+    "reg.unknown": "unbekannter Regler '{name}' (bekannt: {options})",
+    "reg.vout_low": "die Ausgangsspannung muss über der Referenzspannung ({vref} V) liegen",
+    "reg.need_vout": "--vout angeben oder --r2, um die Ausgangsspannung zu berechnen",
+    "reg.vout": "Ausgangsspannung",
+    "reg.r2_calc": "R2 (berechnet)",
+    "reg.dropout": "Typischer Dropout",
+    "reg.headroom": "Vin − Vout",
+    "reg.dropout_warn": "Vin − Vout = {headroom} V liegt unter dem typischen Dropout ({dropout} V); der Ausgang kann einbrechen.",
+    "reg.power": "Verlustleistung",
+    "reg.efficiency": "Wirkungsgrad",
+    "reg.switching_note": "Schaltregler: Die Verluste hängen vom Wirkungsgrad ab (typisch 80-95 %), siehe Datenblatt.",
+    "reg.heat_note": "Über 1 W braucht in den meisten Gehäusen einen Kühlkörper — prüfen mit: elektro thermal --help",
+
+    # Akku
+    "bat.help": (
+        "Akkulaufzeit aus Kapazität und mittlerem Strom (oder einem Aktiv/Schlaf-Profil).\n\n"
+        "Beispiele:\n"
+        "  elektro battery 2000 -i 15m\n"
+        "  elektro battery 1200 --active 45m --active-time 2 --sleep 20u --sleep-time 58"
+    ),
+    "bat.arg": "Kapazität in mAh",
+    "bat.opt.current": "Mittlerer Strom (A), z. B. 15m",
+    "bat.opt.active": "Strom im aktiven Zustand (A)",
+    "bat.opt.active_time": "Aktive Zeit pro Zyklus (s)",
+    "bat.opt.sleep": "Strom im Schlafmodus (A)",
+    "bat.opt.sleep_time": "Schlafzeit pro Zyklus (s)",
+    "bat.opt.derate": "Nutzbarer Anteil der Kapazität (Alterung, Temperatur, Abschaltspannung)",
+    "bat.need": "-i angeben oder alle von --active --active-time --sleep --sleep-time",
+    "bat.title": "Akkulaufzeit",
+    "bat.capacity": "Kapazität",
+    "bat.usable": "Nutzbar",
+    "bat.avg_current": "Mittlerer Strom",
+    "bat.life": "Geschätzte Laufzeit",
+    "bat.note": "Selbstentladung und Ruhestrom des Reglers sind nicht berücksichtigt.",
+
+    # Wärme
+    "th.help": (
+        "Sperrschichttemperatur und benötigter Kühlkörper.\n\n"
+        "Tj = Ta + P · (Rθjc + Rθcs + Rθsa)   oder   Tj = Ta + P · Rθja\n\n"
+        "Beispiele:\n"
+        "  elektro thermal -p 2 --rth-ja 62 --ta 40          (ohne Kühlkörper, TO-220)\n"
+        "  elektro thermal -p 5 --rth-jc 3 --rth-sa 8\n"
+        "  elektro thermal -p 5 --rth-jc 3 --ta 50           (benötigter Kühlkörper)"
+    ),
+    "th.opt.power": "Verlustleistung (W)",
+    "th.opt.ta": "Umgebungstemperatur (°C)",
+    "th.opt.tjmax": "Maximale Sperrschichttemperatur (°C)",
+    "th.opt.rja": "Wärmewiderstand Sperrschicht-Umgebung ohne Kühlkörper (°C/W)",
+    "th.opt.rjc": "Wärmewiderstand Sperrschicht-Gehäuse (°C/W)",
+    "th.opt.rcs": "Gehäuse-Kühlkörper (Wärmeleitpad/-paste) (°C/W)",
+    "th.opt.rsa": "Kühlkörper-Umgebung (°C/W)",
+    "th.need": "--rth-ja angeben oder --rth-jc (mit oder ohne --rth-sa)",
+    "th.title": "Wärmeberechnung",
+    "th.power": "Leistung",
+    "th.total": "Gesamt-Rθ",
+    "th.need_sa": "Benötigter Kühlkörper Rθsa ≤",
+    "th.impossible": "nicht möglich — Leistung verringern",
+    "th.margin": "Abstand zu Tj max",
+    "th.margin_note": "Einen Kühlkörper deutlich unter diesem Wert wählen (~20-30 % Reserve).",
+    "th.over": "Die Sperrschichttemperatur überschreitet das Maximum!",
+
+    # Leitung
+    "wire.help": (
+        "Kupferleitung: AWG ↔ mm², Widerstand, Spannungsabfall und Verlust.\n\n"
+        "Beispiele:\n"
+        "  elektro wire --awg 22 -l 3 -i 2\n"
+        "  elektro wire --mm2 1.5 -l 10 -i 10 --round-trip"
+    ),
+    "wire.opt.awg": "Leiterstärke (AWG)",
+    "wire.opt.mm2": "Querschnitt (mm²)",
+    "wire.opt.length": "Länge (reine Zahl = m): 3, 50cm, 10ft",
+    "wire.opt.current": "Strom (A)",
+    "wire.opt.round_trip": "Länge doppelt zählen (Hin- und Rückleiter)",
+    "wire.opt.temp": "Leitertemperatur (°C)",
+    "wire.metavar.length": "LÄNGE",
+    "wire.bad_length": "Länge '{text}' nicht lesbar (z. B. 3, 50cm, 10ft)",
+    "wire.need": "entweder --awg oder --mm2 angeben",
+    "wire.title": "Kupferleitung",
+    "wire.diameter": "Durchmesser",
+    "wire.area": "Querschnitt",
+    "wire.r_per_m": "Widerstand pro Meter",
+    "wire.resistance": "Widerstand",
+    "wire.drop": "Spannungsabfall",
+    "wire.loss": "Verlustleistung",
+    "wire.density": "Stromdichte",
+    "wire.hot": "Hohe Stromdichte; die Leitung kann warm werden (> 6 A/mm²).",
+    "wire.note": "Massiver Kupferleiter; Litzen haben einen etwas höheren Widerstand.",
+
+    # Leiterbahn
+    "trace.help": (
+        "Leiterbahnbreite nach IPC-2221 (oder der Strom, den eine Bahn trägt).\n\n"
+        "Beispiele:\n"
+        "  elektro trace -i 3\n"
+        "  elektro trace -i 5 --rise 20 --oz 2\n"
+        "  elektro trace -w 0.5 --internal -l 40mm"
+    ),
+    "trace.opt.current": "Strom (A)",
+    "trace.opt.width": "Bahnbreite in mm (berechnet den Strom)",
+    "trace.opt.rise": "Zulässige Erwärmung (°C)",
+    "trace.opt.oz": "Kupferauflage (oz/ft²): 0.5, 1, 2",
+    "trace.opt.internal": "Innenlage (Standard: Außenlage)",
+    "trace.opt.length": "Bahnlänge (reine Zahl = m): 40mm, 0.1",
+    "trace.need": "entweder -i oder -w angeben",
+    "trace.title": "Leiterbahn (IPC-2221)",
+    "trace.width": "Breite",
+    "trace.current": "Strom",
+    "trace.thickness": "Kupfer",
+    "trace.layer": "Lage",
+    "trace.internal": "innen",
+    "trace.external": "außen",
+    "trace.rise": "Erwärmung",
+    "trace.note": "IPC-2221 ist konservativ; bei hohen Strömen auch IPC-2152 prüfen.",
+
+    # Transistorschalter
+    "sw.help": "Transistor als Schalter: BJT-Basiswiderstand, MOSFET-Gate-Ansteuerung.",
+    "sw.opt.vdrive": "Ansteuerspannung (z. B. GPIO 3.3 oder 5 V)",
+    "sw.bjt.help": (
+        "BJT (NPN) als gesättigter Schalter: Basiswiderstand und Verluste.\n\n"
+        "Ib = Ic / hFE · k     Rb = (Vansteuer − Vbe) / Ib\n\n"
+        "Beispiele:\n"
+        "  elektro switch bjt --ic 500m -v 3.3\n"
+        "  elektro switch bjt --vcc 12 --rload 24 -v 5 --hfe 150"
+    ),
+    "sw.bjt.opt.ic": "Kollektor-(Last-)Strom",
+    "sw.bjt.opt.hfe": "Minimale Stromverstärkung hFE (aus dem Datenblatt)",
+    "sw.bjt.opt.overdrive": "Übersteuerungsfaktor k für sichere Sättigung (2-5)",
+    "sw.bjt.opt.vbe": "Basis-Emitter-Spannung (V)",
+    "sw.bjt.opt.vcesat": "Kollektor-Emitter-Sättigungsspannung (V)",
+    "sw.bjt.opt.vcc": "Versorgungsspannung (mit --rload, statt --ic)",
+    "sw.bjt.opt.rload": "Lastwiderstand (mit --vcc)",
+    "sw.bjt.need": "--ic angeben oder --vcc und --rload",
+    "sw.bjt.vdrive_low": "die Ansteuerspannung muss über Vbe ({vbe} V) liegen",
+    "sw.bjt.title": "BJT-Schalter",
+    "sw.bjt.ib": "Benötigter Ib",
+    "sw.bjt.rb_calc": "Rb (berechnet)",
+    "sw.bjt.rb_std": "Rb (E12, eine Stufe kleiner)",
+    "sw.bjt.forced_beta": "Erzwungenes β (Ic/Ib)",
+    "sw.bjt.p_transistor": "Transistorverlust",
+    "sw.bjt.p_rb": "Leistung an Rb",
+    "sw.bjt.gpio_warn": "Basisstrom {ib} ist für die meisten MCU-Pins zu hoch; Darlington oder MOSFET verwenden.",
+    "sw.bjt.note": "Bei induktiven Lasten (Relais, Motor) eine Freilaufdiode parallel zur Last vorsehen.",
+    "sw.fet.help": (
+        "MOSFET-Gate-Ansteuerung: Gatestrom, Schaltzeit und Verluste.\n\n"
+        "Beispiele:\n"
+        "  elektro switch mosfet -v 10 --qg 40n --rg 10 -f 100k\n"
+        "  elektro switch mosfet -v 5 --qg 20n -f 20k --id 5 --rds 20m --vds 24"
+    ),
+    "sw.fet.opt.qg": "Gesamte Gateladung Qg (C), z. B. 40n",
+    "sw.fet.opt.rg": "Gatewiderstand (Ω)",
+    "sw.fet.opt.fsw": "Schaltfrequenz (Hz)",
+    "sw.fet.opt.id": "Drainstrom (A)",
+    "sw.fet.opt.rds": "Durchlasswiderstand Rds(on) (Ω)",
+    "sw.fet.opt.vds": "Drain-Source-Spannung im Sperrzustand (V)",
+    "sw.fet.title": "MOSFET-Gate-Ansteuerung",
+    "sw.fet.ipeak": "Spitzen-Gatestrom",
+    "sw.fet.tsw": "Schaltzeit (≈ Qg/Ig)",
+    "sw.fet.pgate": "Ansteuerleistung",
+    "sw.fet.pcond": "Durchlassverlust",
+    "sw.fet.psw": "Schaltverlust (ca.)",
+    "sw.fet.ptotal": "Gesamtverlust",
+    "sw.fet.slow": "Das Schalten dauert über 10 % der Periode; Gate-Treiber oder kleineres Rg verwenden.",
+    "sw.fet.logic_level": "Ansteuerung unter 5 V: Logic-Level-MOSFET verwenden (Rds(on) bei 2.5-4.5 V spezifiziert).",
+    "sw.fet.note": "Schätzung; die reale Schaltzeit hängt auch vom Miller-Plateau und vom Treiber ab.",
+
+    # Laden
+    "chg.help": (
+        "Kondensatorladung (RC) bzw. Spulenstrom (RL) über der Zeit.\n\n"
+        "v(t) = Vend + (V0 − Vend) · e^(−t/τ)\n\n"
+        "Beispiele:\n"
+        "  elektro charge --r 10k --c 100u --v 5\n"
+        "  elektro charge --r 10k --c 100u --v 5 --to 3.3      (Zeit bis 3.3 V)\n"
+        "  elektro charge --r 10k --c 100u --v 0 --v0 5 --t 1  (Entladung)\n"
+        "  elektro charge --r 10 --l 1m --v 12                 (RL-Strom)"
+    ),
+    "chg.opt.r": "Widerstand (Ω)",
+    "chg.opt.c": "Kapazität (F) für RC",
+    "chg.opt.l": "Induktivität (H) für RL",
+    "chg.opt.v": "Angelegte (End-)Spannung (V)",
+    "chg.opt.v0": "Anfangsspannung des Kondensators (V)",
+    "chg.opt.to": "Zielspannung: Zeit bis zum Erreichen",
+    "chg.opt.t": "Zeit (s): Wert zu diesem Zeitpunkt",
+    "chg.need": "entweder --c (RC) oder --l (RL) angeben",
+    "chg.unreachable": "das Ziel wird nie erreicht (liegt nicht zwischen Anfangs- und Endwert)",
+    "chg.title_rc": "RC-Ladung",
+    "chg.title_rl": "RL-Strom",
+    "chg.final": "Endwert",
+    "chg.value_at": "Wert bei {time}",
+    "chg.time_to": "Zeit bis {target}",
+    "chg.note": "Nach 1τ sind {pct} der Änderung erreicht; nach 5τ ist sie praktisch abgeschlossen.",
+
+    # Microstrip
+    "ms.help": (
+        "Mikrostreifenleitung: Bahnbreite für eine Impedanz oder Impedanz einer Breite (Hammerstad).\n\n"
+        "Beispiele:\n"
+        "  elektro rf microstrip --z0 50                   (1.6 mm FR4)\n"
+        "  elektro rf microstrip --z0 50 --h 0.2 --er 4.2 -f 2.4G\n"
+        "  elektro rf microstrip -w 3"
+    ),
+    "ms.opt.z0": "Zielimpedanz (Ω)",
+    "ms.opt.width": "Bahnbreite (mm) — berechnet Z0",
+    "ms.opt.h": "Dielektrikumsdicke bis zur Massefläche (mm)",
+    "ms.opt.er": "Relative Permittivität εr (FR4 ≈ 4.2-4.6)",
+    "ms.need": "entweder --z0 oder --width angeben",
+    "ms.range": "Impedanz außerhalb des erreichbaren Bereichs",
+    "ms.title": "Mikrostreifenleitung",
+    "ms.width": "Bahnbreite",
+    "ms.lambda": "Wellenlänge auf der Leitung",
+    "ms.note": "Kupferdicke und Lötstopplack werden vernachlässigt; für Endwerte den Rechner des Leiterplattenherstellers verwenden.",
+
+    # LoRa
+    "lora.help": (
+        "LoRa-Sendedauer, Datenrate, Empfindlichkeit und Duty-Cycle-Grenze (Semtech AN1200.13).\n\n"
+        "Beispiele:\n"
+        "  elektro rf lora --sf 9 -p 20\n"
+        "  elektro rf lora --sf 12 --bw 125k --cr 4/8 -p 51"
+    ),
+    "lora.opt.sf": "Spreizfaktor (7-12)",
+    "lora.opt.bw": "Bandbreite (Hz): 125k, 250k, 500k",
+    "lora.opt.cr": "Coderate: 4/5 … 4/8",
+    "lora.opt.payload": "Nutzdatenlänge (Byte)",
+    "lora.opt.preamble": "Präambellänge (Symbole)",
+    "lora.opt.no_crc": "Ohne Nutzdaten-CRC",
+    "lora.opt.implicit": "Impliziter Header",
+    "lora.opt.duty": "Duty-Cycle-Grenze in % (EU 868 MHz: 1)",
+    "lora.opt.nf": "Rauschzahl des Empfängers (dB)",
+    "lora.bad_cr": "die Coderate muss 4/5, 4/6, 4/7 oder 4/8 sein",
+    "lora.airtime": "Sendedauer (Time on Air)",
+    "lora.symbol": "Symboldauer",
+    "lora.bitrate": "Datenrate",
+    "lora.sensitivity": "Empfindlichkeit (ca.)",
+    "lora.per_hour": "Pakete/Stunde bei {duty}",
+    "lora.interval": "alle",
+    "lora.on": "an",
+    "lora.off": "aus",
+    "lora.note": "LDRO (Low Data Rate Optimization) wird automatisch aktiviert, wenn die Symboldauer 16 ms übersteigt.",
+
+    # Fresnel
+    "fresnel.help": (
+        "Erste Fresnelzone und benötigte Antennenhöhe für Sichtverbindung.\n\n"
+        "r₁ = √(λ·d₁·d₂ / D)\n\n"
+        "Beispiele:\n"
+        "  elektro rf fresnel -f 868 -d 10\n"
+        "  elektro rf fresnel -f 2.4G -d 3 --at 500m"
+    ),
+    "fresnel.opt.at": "Abstand des Hindernisses vom Sender (Standard: Mitte)",
+    "fresnel.opt.k": "Faktor für den effektiven Erdradius (Standardatmosphäre 4/3)",
+    "fresnel.bad_at": "der Punkt muss zwischen den beiden Antennen liegen",
+    "fresnel.title": "Fresnelzone",
+    "fresnel.point": "Punkt (d₁ / d₂)",
+    "fresnel.r1": "Radius 1. Fresnelzone",
+    "fresnel.r60": "60 % Freiraum",
+    "fresnel.bulge": "Erdkrümmung",
+    "fresnel.need": "Benötigter Freiraum",
+    "fresnel.note": "Die Verbindungslinie muss an diesem Punkt mindestens so hoch über Hindernissen verlaufen.",
+
+    # Koax
+    "coax.help": (
+        "Dämpfung eines Koaxialkabels bei einer Frequenz (typische Werte).\n\n"
+        "Kabel: RG-58, RG-174, RG-316, RG-213, RG-6, LMR-195, LMR-240, LMR-400, LMR-600\n\n"
+        "Beispiele:\n"
+        "  elektro rf coax rg58 -f 868 -l 5\n"
+        "  elektro rf coax lmr400 -f 2.4G -l 20m"
+    ),
+    "coax.arg": "Kabeltyp, z. B. rg58, lmr400",
+    "coax.opt.length": "Kabellänge (reine Zahl = m): 5, 150cm, 30ft",
+    "coax.metavar.length": "LÄNGE",
+    "coax.unknown": "unbekanntes Kabel '{name}' (bekannt: {options})",
+    "coax.per100": "Dämpfung pro 100 m",
+    "coax.loss": "Gesamtdämpfung",
+    "coax.delivered": "Übertragene Leistung",
+    "coax.delay": "Laufzeit",
+    "coax.electrical": "Elektrische Länge",
+    "coax.note": "Typische Werte; für das genaue Kabel das Herstellerdatenblatt verwenden. Jeder Stecker kostet ~0.1-0.3 dB.",
+
+    # MCU
+    "mcu.opt.clock": "Peripherietakt (Hz), z. B. 16M, 72M",
+    "mcu.opt.mcu": "Mikrocontroller-Familie: avr, stm32, generic",
+    "mcu.unknown": "unbekannte MCU-Familie '{mcu}' (Optionen: {options})",
+
+    # UART
+    "uart.help": (
+        "UART-Baudratenregister und Fehler.\n\n"
+        "Ohne --baud wird eine Tabelle üblicher Baudraten angezeigt.\n\n"
+        "Beispiele:\n"
+        "  elektro uart -c 16M -b 115200\n"
+        "  elektro uart -c 16M\n"
+        "  elektro uart -c 72M -b 921600 -m stm32"
+    ),
+    "uart.opt.baud": "Baudrate",
+    "uart.opt.oversample": "Überabtastung für --mcu generic",
+    "uart.col.baud": "Baud",
+    "uart.col.mode": "Modus",
+    "uart.col.register": "Register",
+    "uart.col.actual": "Tatsächlich",
+    "uart.col.error": "Fehler",
+    "uart.impossible": "nicht möglich",
+    "uart.note": "Fehler bis ±2 % funktionieren meist; für Zuverlässigkeit unter ±1 % bleiben.",
+
+    # PWM
+    "pwm.help": (
+        "Timer/PWM-Vorteiler und Periodenregister für eine Frequenz.\n\n"
+        "Beispiele:\n"
+        "  elektro pwm -c 16M -f 20k                 (AVR Timer1)\n"
+        "  elektro pwm -c 16M -f 1k --bits 8\n"
+        "  elektro pwm -c 72M -f 20k -m stm32 -d 25"
+    ),
+    "pwm.opt.freq": "PWM-Frequenz (Hz)",
+    "pwm.opt.bits": "Timerbreite in Bit (8, 16, 32)",
+    "pwm.opt.duty": "Tastverhältnis in % (berechnet den Vergleichswert)",
+    "pwm.bad": "Takt und Frequenz müssen positiv sein; Bits müssen 8, 10, 16 oder 32 sein",
+    "pwm.impossible": "diese Frequenz ist mit diesem Takt/Timer nicht erzeugbar",
+    "pwm.prescaler": "Vorteiler",
+    "pwm.actual": "Tatsächliche Frequenz",
+    "pwm.error": "Fehler",
+    "pwm.resolution": "Auflösung",
+    "pwm.steps": "Stufen",
+    "pwm.compare": "Vergleichswert für {duty}",
+    "pwm.low_res": "Auflösung unter 8 Bit; Frequenz senken oder Takt erhöhen.",
+
+    # ADC
+    "adc.help": (
+        "ADC/DAC: LSB-Größe, Umrechnung Spannung ↔ Code, ideales SNR.\n\n"
+        "V = Code · Vref / 2ᴺ\n\n"
+        "Beispiele:\n"
+        "  elektro adc -b 12 --vref 3.3 --code 2048\n"
+        "  elektro adc -b 10 --vref 5 --volt 1.2"
+    ),
+    "adc.opt.bits": "Auflösung in Bit",
+    "adc.opt.vref": "Referenzspannung (V)",
+    "adc.opt.code": "Digitaler Code → Spannung",
+    "adc.opt.volt": "Spannung → digitaler Code",
+    "adc.steps": "Stufen",
+    "adc.snr": "Ideales SNR",
+    "adc.voltage_of": "Spannung von Code {code}",
+    "adc.code_of": "Code für {volt}",
+    "adc.code_range": "der Code muss zwischen 0 und {max} liegen",
+    "adc.clipped": "Die Spannung liegt außerhalb 0 … Vref; der Code wird begrenzt.",
+    "adc.note": "Manche Datenblätter teilen durch 2ᴺ − 1; der Unterschied beträgt 1 LSB.",
+
+    # I2C
+    "i2c.help": (
+        "Bereich des I²C-Pull-up-Widerstands aus Buskapazität und Geschwindigkeit.\n\n"
+        "Rmin = (Vdd − 0.4 V) / Iol     Rmax = tr / (0.8473 · Cb)\n\n"
+        "Beispiele:\n"
+        "  elektro i2c --cb 200p\n"
+        "  elektro i2c --vdd 5 --cb 100p -s 100k"
+    ),
+    "i2c.opt.vdd": "Pull-up-Versorgungsspannung (V)",
+    "i2c.opt.cb": "Gesamte Buskapazität (F), z. B. 200p (≈10 pF pro Teilnehmer + Leitungen)",
+    "i2c.opt.speed": "Busgeschwindigkeit: 100k, 400k oder 1M",
+    "i2c.bad_speed": "die Geschwindigkeit muss 100k, 400k oder 1M sein",
+    "i2c.cb_limit": "Der I²C-Standard erlaubt höchstens 400 pF Buskapazität.",
+    "i2c.impossible": "kein gültiger Widerstand: Buskapazität für diese Geschwindigkeit zu hoch",
+    "i2c.suggested": "Vorschlag (E12)",
+    "i2c.note": "Kleineres R = schnellere Flanken, aber mehr Strom; zwischen Rmin und Rmax bleiben.",
+
+    # CRC
+    "crc.help": (
+        "CRC und einfache Prüfsummen einer Bytefolge.\n\n"
+        "Beispiele:\n"
+        "  elektro crc \"01 03 00 00 00 0A\"\n"
+        "  elektro crc 0x31323334 -a modbus\n"
+        "  elektro crc \"123456789\" --text"
+    ),
+    "crc.arg": "Daten als Hex-Bytes (\"01 03 0A\", 0x01030A) oder Text mit --text",
+    "crc.opt.text": "Daten als Text behandeln (UTF-8)",
+    "crc.opt.algo": "Nur dieser Algorithmus (z. B. modbus, crc-32)",
+    "crc.bad_hex": "ungültige Hex-Daten (Paare aus Hex-Ziffern verwenden, z. B. \"01 03 0A\")",
+    "crc.unknown": "unbekannter Algorithmus '{algo}' (Optionen: {options})",
+    "crc.title": "CRC von {n} Byte",
+    "crc.col.algo": "Algorithmus",
+    "crc.col.bytes": "Bytes (Senderreihenfolge)",
+
+    # Rechner
+    "calc.help": (
+        "Rechner, der technische Schreibweise und Einheiten versteht.\n\n"
+        "Operatoren: + − * / ^ ( )   Funktionen: sqrt log ln exp sin cos tan db dbp par\n"
+        "Konstanten: pi e c.  par(a, b, …) = Parallelschaltung.\n\n"
+        "Beispiele:\n"
+        "  elektro calc \"12V / (4k7 + 1k)\"\n"
+        "  elektro calc \"1 / (2*pi*sqrt(10u * 100n))\" -u Hz\n"
+        "  elektro calc \"par(1k, 2k2, 4k7)\" -u Ω\n"
+        "  elektro calc \"db(3.3 / 0.1)\""
+    ),
+    "calc.arg": "Ausdruck (in der Shell in Anführungszeichen)",
+    "calc.opt.unit": "Einheit für das Ergebnis (V, A, Ω, Hz …)",
+    "calc.syntax": "Ausdruck nicht lesbar",
+    "calc.unknown_name": "unbekannter Name '{name}'",
+    "calc.unsupported": "nicht unterstütztes Element im Ausdruck",
+    "calc.div_zero": "Division durch null",
+    "calc.complex": "das Ergebnis ist komplex",
+
+    # Einheiten
+    "unit.help": (
+        "Einheitenumrechner für den Elektronik-Alltag.\n\n"
+        "Temperatur: c f k · Länge: m cm mm um in mil ft · dB: db pratio vratio\n"
+        "Leitung: awg mm2 · Kupfer: oz · Winkel: deg rad · Frequenz: hz rpm\n\n"
+        "Beispiele:\n"
+        "  elektro unit 25 c\n"
+        "  elektro unit 10 mil mm\n"
+        "  elektro unit 6 db\n"
+        "  elektro unit 22 awg"
+    ),
+    "unit.arg.value": "Wert",
+    "unit.arg.src": "Quelleinheit ({units})",
+    "unit.arg.dst": "Zieleinheit (ohne Angabe: alle)",
+    "unit.unknown": "unbekannte Einheit '{unit}' (Optionen: {options})",
+    "unit.no_path": "keine Umrechnung von {src} nach {dst}",
+    "unit.below_zero": "unter dem absoluten Nullpunkt",
+    "unit.power_ratio": "Leistungsverhältnis",
+    "unit.voltage_ratio": "Spannungsverhältnis",
+    "unit.period": "Periode (s)",
+
+    # Datenblatt-Cache
+    "ds.opt.history": "Bereits geladene Datenblätter auflisten (Cache)",
+    "ds.from_cache": "Im Cache gefunden, kein Download nötig.",
+    "ds.cache_source": "Cache",
+    "ds.cache_empty": "Der Datenblatt-Cache ist leer.",
+    "ds.cache_title": "Geladene Datenblätter",
+    "ds.col.part": "Bauteil",
+    "ds.col.size": "Größe",
+    "ds.col.date": "Datum",
+})

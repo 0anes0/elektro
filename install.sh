@@ -18,6 +18,7 @@ TARBALL_URL="$REPO_URL/archive/refs/heads/main.tar.gz"
 PREFIX="${ELEKTRO_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/elektro}"
 BIN_DIR="${ELEKTRO_BIN:-$HOME/.local/bin}"
 VENV="$PREFIX/venv"
+MAN_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/man/man1"
 PYTHON="${PYTHON:-python3}"
 
 # --- Dil / language ------------------------------------------------------------
@@ -91,10 +92,6 @@ Umgebungsvariablen: ELEKTRO_HOME, ELEKTRO_BIN, ELEKTRO_LANG, PYTHON" ;;
         tr:pipx_found) echo "pipx ile kurulmuş eski sürüm bulundu, kaldırılıyor" ;;
         de:pipx_found) echo "Alte, mit pipx installierte Version gefunden, wird entfernt" ;;
         ru:pipx_found) echo "Найдена старая версия, установленная через pipx, удаляем" ;;
-        en:pipx_failed) echo "pipx uninstall failed, continuing" ;;
-        tr:pipx_failed) echo "pipx kaldırması başarısız, devam ediliyor" ;;
-        de:pipx_failed) echo "pipx-Deinstallation fehlgeschlagen, fahre fort" ;;
-        ru:pipx_failed) echo "не удалось удалить через pipx, продолжаем" ;;
 
         en:venv) echo "Creating virtual environment: %s" ;;
         tr:venv) echo "Sanal ortam oluşturuluyor: %s" ;;
@@ -130,6 +127,10 @@ Umgebungsvariablen: ELEKTRO_HOME, ELEKTRO_BIN, ELEKTRO_LANG, PYTHON" ;;
         tr:start) echo "Başlamak için:" ;;
         de:start) echo "Loslegen:" ;;
         ru:start) echo "Начать:" ;;
+        en:manual) echo "Manual:" ;;
+        tr:manual) echo "Kılavuz:" ;;
+        de:manual) echo "Handbuch:" ;;
+        ru:manual) echo "Руководство:" ;;
         en:completion) echo "Shell completion:" ;;
         tr:completion) echo "Kabuk tamamlama:" ;;
         de:completion) echo "Shell-Vervollständigung:" ;;
@@ -167,6 +168,7 @@ uninstall() {
         rm -f "$BIN_DIR/elektro"
     fi
     rm -rf "$PREFIX"
+    rm -f "$MAN_DIR/elektro.1"
     ok removed
     exit 0
 }
@@ -190,15 +192,15 @@ command -v "$PYTHON" >/dev/null 2>&1 || die no_python "$PYTHON"
 SRC="$TARBALL_URL"
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [ -f "$SCRIPT_DIR/pyproject.toml" ] && grep -q '^name = "elektro"' "$SCRIPT_DIR/pyproject.toml"; then
+    if [ -f "$SCRIPT_DIR/pyproject.toml" ] && grep -qE '^name = "elektro(-cli)?"' "$SCRIPT_DIR/pyproject.toml"; then
         SRC="$SCRIPT_DIR"
     fi
 fi
 
 # --- Eski pipx kurulumu -------------------------------------------------------
-if command -v pipx >/dev/null 2>&1 && pipx list --short 2>/dev/null | grep -q '^elektro '; then
+if command -v pipx >/dev/null 2>&1 && pipx list --short 2>/dev/null | grep -qE '^elektro(-cli)? '; then
     warn pipx_found
-    pipx uninstall elektro >/dev/null || warn pipx_failed
+    for pkg in elektro elektro-cli; do pipx uninstall "$pkg" >/dev/null 2>&1 || true; done
 fi
 
 # --- Kurulum ------------------------------------------------------------------
@@ -222,6 +224,9 @@ ln -sf "$VENV/bin/elektro" "$BIN_DIR/elektro"
 VERSION="$("$BIN_DIR/elektro" --version 2>/dev/null)" || die verify_failed
 ok installed "$VERSION" "$BIN_DIR/elektro"
 
+# Man sayfası (man-db, ~/.local/bin için ~/.local/share/man'e kendiliğinden bakar)
+mkdir -p "$MAN_DIR" && "$BIN_DIR/elektro" manpage > "$MAN_DIR/elektro.1" 2>/dev/null || rm -f "$MAN_DIR/elektro.1"
+
 # --- PATH ---------------------------------------------------------------------
 case ":$PATH:" in
     *":$BIN_DIR:"*) ;;
@@ -238,6 +243,7 @@ esac
 row() { printf '  %s %s\n' "$(m "$1")" "${B}$2${N}"; }
 echo
 row start      "elektro"
+row manual     "man elektro"
 row completion "elektro --install-completion"
 row language   "elektro language en|tr|de|ru"
 row update     "elektro update"

@@ -560,3 +560,468 @@ MESSAGES = {
     "ds.all_failed": "Bulunan adayların hiçbirinden PDF indirilemedi.",
     "ds.manual": "Elle aramak için:",
 }
+
+# --- 0.4: yeni komutlar -----------------------------------------------------------------
+MESSAGES.update({
+    "cli.opt.json": "Sonuçları JSON olarak yaz (betikler için)",
+    "panel.power": "Güç & iletkenler",
+    "panel.embedded": "Gömülü sistemler",
+    "menu.switch": "Anahtar olarak transistör",
+    "menu.charge": "RC/RL dolma eğrisi",
+    "menu.regulator": "Voltaj regülatörü",
+    "menu.battery": "Batarya ömrü",
+    "menu.thermal": "Isı ve soğutucu",
+    "menu.wire": "Kablo kesiti, gerilim düşümü",
+    "menu.trace": "PCB yol genişliği",
+    "menu.uart": "UART baud hatası",
+    "menu.pwm": "Timer/PWM kayıtları",
+    "menu.adc": "ADC gerilim ↔ kod",
+    "menu.i2c": "I²C pull-up direnci",
+    "menu.crc": "CRC / checksum",
+    "menu.calc": "Birimli hesap makinesi",
+    "menu.unit": "Birim dönüştürücü",
+    "time.min": "dk",
+    "time.hours": "saat",
+    "time.days": "gün",
+    "time.months": "ay",
+
+    # regülatör
+    "reg.help": (
+        "Voltaj regülatörü: ayarlılarda direnç hesabı, lineerlerde harcanan güç.\n\n"
+        "Ayarlı: lm317, lm1117, ams1117, lm2596, xl4015, mp1584\n"
+        "Sabit: 7805, 7812, ams1117-3.3 …\n\n"
+        "Örnekler:\n"
+        "  elektro regulator lm317 --vout 5\n"
+        "  elektro regulator lm317 --r1 240 --r2 720\n"
+        "  elektro regulator 7805 --vin 12 -i 500m\n"
+        "  elektro regulator ams1117-3.3 --vin 5 -i 300m"
+    ),
+    "reg.arg": "Regülatör, örn: lm317, 7805, ams1117-3.3",
+    "reg.opt.vout": "Hedef çıkış gerilimi (ayarlı regülatörler)",
+    "reg.opt.vin": "Giriş gerilimi",
+    "reg.opt.iout": "Yük akımı",
+    "reg.opt.r1": "R1 (OUT ile ADJ/FB arası); varsayılan: datasheet değeri",
+    "reg.opt.r2": "R2 (ADJ/FB ile toprak arası) — Vout'u hesaplar",
+    "reg.unknown": "bilinmeyen regülatör '{name}' (bilinenler: {options})",
+    "reg.vout_low": "çıkış referans geriliminden ({vref} V) büyük olmalı",
+    "reg.need_vout": "--vout ya da çıkışı hesaplamak için --r2 ver",
+    "reg.vout": "Çıkış gerilimi",
+    "reg.r2_calc": "R2 (hesap)",
+    "reg.dropout": "Tipik düşüm (dropout)",
+    "reg.headroom": "Vin − Vout",
+    "reg.dropout_warn": "Vin − Vout = {headroom} V, tipik düşüm geriliminin ({dropout} V) altında; çıkış düşebilir.",
+    "reg.power": "Harcanan güç",
+    "reg.efficiency": "Verim",
+    "reg.switching_note": "Anahtarlamalı regülatör: kayıp verime bağlıdır (tipik %80-95), datasheet'e bak.",
+    "reg.heat_note": "1 W üstü çoğu kılıfta soğutucu ister — kontrol için: elektro thermal --help",
+
+    # batarya
+    "bat.help": (
+        "Kapasite ve ortalama akımdan (ya da aktif/uyku profilinden) batarya ömrü.\n\n"
+        "Örnekler:\n"
+        "  elektro battery 2000 -i 15m\n"
+        "  elektro battery 1200 --active 45m --active-time 2 --sleep 20u --sleep-time 58"
+    ),
+    "bat.arg": "Kapasite (mAh)",
+    "bat.opt.current": "Ortalama akım (A), örn: 15m",
+    "bat.opt.active": "Aktifken çekilen akım (A)",
+    "bat.opt.active_time": "Her döngüde aktif süre (s)",
+    "bat.opt.sleep": "Uykudayken çekilen akım (A)",
+    "bat.opt.sleep_time": "Her döngüde uyku süresi (s)",
+    "bat.opt.derate": "Kapasitenin kullanılabilir oranı (yaşlanma, sıcaklık, kesme gerilimi)",
+    "bat.need": "-i ya da --active --active-time --sleep --sleep-time değerlerinin hepsini ver",
+    "bat.title": "Batarya Ömrü",
+    "bat.capacity": "Kapasite",
+    "bat.usable": "Kullanılabilir",
+    "bat.avg_current": "Ortalama akım",
+    "bat.life": "Tahmini ömür",
+    "bat.note": "Kendi kendine deşarj ve regülatörün boşta akımı hesaba katılmadı.",
+
+    # ısıl
+    "th.help": (
+        "Jonksiyon sıcaklığı ve gereken soğutucu.\n\n"
+        "Tj = Ta + P · (Rθjc + Rθcs + Rθsa)   ya da   Tj = Ta + P · Rθja\n\n"
+        "Örnekler:\n"
+        "  elektro thermal -p 2 --rth-ja 62 --ta 40          (soğutucusuz, TO-220)\n"
+        "  elektro thermal -p 5 --rth-jc 3 --rth-sa 8\n"
+        "  elektro thermal -p 5 --rth-jc 3 --ta 50           (gereken soğutucu)"
+    ),
+    "th.opt.power": "Harcanan güç (W)",
+    "th.opt.ta": "Ortam sıcaklığı (°C)",
+    "th.opt.tjmax": "Maksimum jonksiyon sıcaklığı (°C)",
+    "th.opt.rja": "Soğutucusuz jonksiyon-ortam ısıl direnci (°C/W)",
+    "th.opt.rjc": "Jonksiyon-kılıf ısıl direnci (°C/W)",
+    "th.opt.rcs": "Kılıf-soğutucu (ısı pedi/macun) (°C/W)",
+    "th.opt.rsa": "Soğutucu-ortam (°C/W)",
+    "th.need": "--rth-ja ya da --rth-jc (--rth-sa ile veya onsuz) ver",
+    "th.title": "Isıl Hesap",
+    "th.power": "Güç",
+    "th.total": "Toplam Rθ",
+    "th.need_sa": "Gereken soğutucu Rθsa ≤",
+    "th.impossible": "mümkün değil — gücü azalt",
+    "th.margin": "Tj max'a kalan pay",
+    "th.margin_note": "Bu değerin rahatça altında bir soğutucu seç (~%20-30 pay).",
+    "th.over": "Jonksiyon sıcaklığı maksimumu aşıyor!",
+
+    # kablo
+    "wire.help": (
+        "Bakır kablo: AWG ↔ mm², direnç, gerilim düşümü ve kayıp.\n\n"
+        "Örnekler:\n"
+        "  elektro wire --awg 22 -l 3 -i 2\n"
+        "  elektro wire --mm2 1.5 -l 10 -i 10 --round-trip"
+    ),
+    "wire.opt.awg": "Kablo kalınlığı (AWG)",
+    "wire.opt.mm2": "Kesit (mm²)",
+    "wire.opt.length": "Uzunluk (yalın sayı = m): 3, 50cm, 10ft",
+    "wire.opt.current": "Akım (A)",
+    "wire.opt.round_trip": "Uzunluğu iki kez say (gidiş + dönüş iletkeni)",
+    "wire.opt.temp": "İletken sıcaklığı (°C)",
+    "wire.metavar.length": "UZUNLUK",
+    "wire.bad_length": "'{text}' uzunluk olarak anlaşılamadı (örn: 3, 50cm, 10ft)",
+    "wire.need": "--awg ya da --mm2'den birini ver",
+    "wire.title": "Bakır Kablo",
+    "wire.diameter": "Çap",
+    "wire.area": "Kesit",
+    "wire.r_per_m": "Metre başına direnç",
+    "wire.resistance": "Direnç",
+    "wire.drop": "Gerilim düşümü",
+    "wire.loss": "Güç kaybı",
+    "wire.density": "Akım yoğunluğu",
+    "wire.hot": "Akım yoğunluğu yüksek; kablo ısınabilir (> 6 A/mm²).",
+    "wire.note": "Tek telli bakır; çok telli kablonun direnci biraz daha yüksektir.",
+
+    # PCB yolu
+    "trace.help": (
+        "IPC-2221'e göre PCB yol genişliği (ya da bir yolun taşıyabileceği akım).\n\n"
+        "Örnekler:\n"
+        "  elektro trace -i 3\n"
+        "  elektro trace -i 5 --rise 20 --oz 2\n"
+        "  elektro trace -w 0.5 --internal -l 40mm"
+    ),
+    "trace.opt.current": "Akım (A)",
+    "trace.opt.width": "Yol genişliği mm (akımı hesaplar)",
+    "trace.opt.rise": "İzin verilen sıcaklık artışı (°C)",
+    "trace.opt.oz": "Bakır ağırlığı (oz/ft²): 0.5, 1, 2",
+    "trace.opt.internal": "İç katman (varsayılan dış katman)",
+    "trace.opt.length": "Yol uzunluğu (yalın sayı = m): 40mm, 0.1",
+    "trace.need": "-i ya da -w'den birini ver",
+    "trace.title": "PCB Yolu (IPC-2221)",
+    "trace.width": "Genişlik",
+    "trace.current": "Akım",
+    "trace.thickness": "Bakır",
+    "trace.layer": "Katman",
+    "trace.internal": "iç",
+    "trace.external": "dış",
+    "trace.rise": "Sıcaklık artışı",
+    "trace.note": "IPC-2221 temkinlidir; yüksek akımlarda IPC-2152'ye de bak.",
+
+    # transistör anahtar
+    "sw.help": "Anahtar olarak transistör: BJT taban direnci, MOSFET kapı sürme.",
+    "sw.opt.vdrive": "Sürme gerilimi (örn: GPIO 3.3 ya da 5 V)",
+    "sw.bjt.help": (
+        "Doyumda çalışan BJT (NPN) anahtar: taban direnci ve kayıplar.\n\n"
+        "Ib = Ic / hFE · k     Rb = (Vsürme − Vbe) / Ib\n\n"
+        "Örnekler:\n"
+        "  elektro switch bjt --ic 500m -v 3.3\n"
+        "  elektro switch bjt --vcc 12 --rload 24 -v 5 --hfe 150"
+    ),
+    "sw.bjt.opt.ic": "Kollektör (yük) akımı",
+    "sw.bjt.opt.hfe": "Minimum akım kazancı hFE (datasheet'ten)",
+    "sw.bjt.opt.overdrive": "Sağlam doyum için aşırı sürme katsayısı k (2-5)",
+    "sw.bjt.opt.vbe": "Baz-emiter gerilimi (V)",
+    "sw.bjt.opt.vcesat": "Kollektör-emiter doyum gerilimi (V)",
+    "sw.bjt.opt.vcc": "Besleme gerilimi (--rload ile, --ic yerine)",
+    "sw.bjt.opt.rload": "Yük direnci (--vcc ile)",
+    "sw.bjt.need": "--ic ya da --vcc ve --rload ver",
+    "sw.bjt.vdrive_low": "sürme gerilimi Vbe'den ({vbe} V) büyük olmalı",
+    "sw.bjt.title": "BJT Anahtar",
+    "sw.bjt.ib": "Gereken Ib",
+    "sw.bjt.rb_calc": "Rb (hesap)",
+    "sw.bjt.rb_std": "Rb (E12, bir alt)",
+    "sw.bjt.forced_beta": "Zorlanmış β (Ic/Ib)",
+    "sw.bjt.p_transistor": "Transistör kaybı",
+    "sw.bjt.p_rb": "Rb gücü",
+    "sw.bjt.gpio_warn": "{ib} taban akımı çoğu MCU bacağı için fazla; Darlington ya da MOSFET kullan.",
+    "sw.bjt.note": "Endüktif yüklerde (röle, motor) yüke paralel serbest geçiş diyotu ekle.",
+    "sw.fet.help": (
+        "MOSFET kapı sürme: kapı akımı, anahtarlama süresi ve kayıplar.\n\n"
+        "Örnekler:\n"
+        "  elektro switch mosfet -v 10 --qg 40n --rg 10 -f 100k\n"
+        "  elektro switch mosfet -v 5 --qg 20n -f 20k --id 5 --rds 20m --vds 24"
+    ),
+    "sw.fet.opt.qg": "Toplam kapı yükü Qg (C), örn: 40n",
+    "sw.fet.opt.rg": "Kapı direnci (Ω)",
+    "sw.fet.opt.fsw": "Anahtarlama frekansı (Hz)",
+    "sw.fet.opt.id": "Drain akımı (A)",
+    "sw.fet.opt.rds": "İletim direnci Rds(on) (Ω)",
+    "sw.fet.opt.vds": "Kesimdeyken drain-source gerilimi (V)",
+    "sw.fet.title": "MOSFET Kapı Sürme",
+    "sw.fet.ipeak": "Tepe kapı akımı",
+    "sw.fet.tsw": "Anahtarlama süresi (≈ Qg/Ig)",
+    "sw.fet.pgate": "Kapı sürme gücü",
+    "sw.fet.pcond": "İletim kaybı",
+    "sw.fet.psw": "Anahtarlama kaybı (yaklaşık)",
+    "sw.fet.ptotal": "Toplam kayıp",
+    "sw.fet.slow": "Anahtarlama periyodun %10'undan uzun sürüyor; kapı sürücü ya da daha küçük Rg kullan.",
+    "sw.fet.logic_level": "5 V altı sürme: lojik seviye MOSFET kullan (Rds(on) 2.5-4.5 V'ta belirtilmiş).",
+    "sw.fet.note": "Tahmindir; gerçek anahtarlama süresi Miller platosuna ve sürücüye de bağlıdır.",
+
+    # dolma
+    "chg.help": (
+        "Zamana göre RC kondansatör dolması / RL bobin akımı.\n\n"
+        "v(t) = Vs + (V0 − Vs) · e^(−t/τ)\n\n"
+        "Örnekler:\n"
+        "  elektro charge --r 10k --c 100u --v 5\n"
+        "  elektro charge --r 10k --c 100u --v 5 --to 3.3      (3.3 V'a kadar süre)\n"
+        "  elektro charge --r 10k --c 100u --v 0 --v0 5 --t 1  (boşalma)\n"
+        "  elektro charge --r 10 --l 1m --v 12                 (RL akımı)"
+    ),
+    "chg.opt.r": "Direnç (Ω)",
+    "chg.opt.c": "RC için kapasitans (F)",
+    "chg.opt.l": "RL için endüktans (H)",
+    "chg.opt.v": "Uygulanan (son) gerilim (V)",
+    "chg.opt.v0": "Kondansatörün başlangıç gerilimi (V)",
+    "chg.opt.to": "Hedef gerilim: ne kadar sürede ulaşılır",
+    "chg.opt.t": "Zaman (s): bu andaki değer",
+    "chg.need": "--c (RC) ya da --l (RL)'den birini ver",
+    "chg.unreachable": "hedefe hiç ulaşılmaz (başlangıç ile son değer arasında değil)",
+    "chg.title_rc": "RC Dolma",
+    "chg.title_rl": "RL Akımı",
+    "chg.final": "Son değer",
+    "chg.value_at": "{time} anındaki değer",
+    "chg.time_to": "{target} için süre",
+    "chg.note": "1τ sonunda değişimin {pct}'ü tamamlanır; 5τ'da pratikte biter.",
+
+    # microstrip
+    "ms.help": (
+        "Mikroşerit hat: istenen empedans için yol genişliği ya da bir genişliğin empedansı (Hammerstad).\n\n"
+        "Örnekler:\n"
+        "  elektro rf microstrip --z0 50                   (1.6 mm FR4)\n"
+        "  elektro rf microstrip --z0 50 --h 0.2 --er 4.2 -f 2.4G\n"
+        "  elektro rf microstrip -w 3"
+    ),
+    "ms.opt.z0": "Hedef empedans (Ω)",
+    "ms.opt.width": "Yol genişliği (mm) — Z0'ı hesaplar",
+    "ms.opt.h": "Toprak düzlemine olan dielektrik kalınlığı (mm)",
+    "ms.opt.er": "Bağıl dielektrik sabiti εr (FR4 ≈ 4.2-4.6)",
+    "ms.need": "--z0 ya da --width'ten birini ver",
+    "ms.range": "empedans ulaşılabilir aralığın dışında",
+    "ms.title": "Mikroşerit Hat",
+    "ms.width": "Yol genişliği",
+    "ms.lambda": "Hat üzerindeki dalga boyu",
+    "ms.note": "Bakır kalınlığı ve lehim maskesi hesaba katılmadı; son değer için üreticinin hesaplayıcısını kullan.",
+
+    # LoRa
+    "lora.help": (
+        "LoRa havada kalma süresi, veri hızı, hassasiyet ve görev döngüsü sınırı (Semtech AN1200.13).\n\n"
+        "Örnekler:\n"
+        "  elektro rf lora --sf 9 -p 20\n"
+        "  elektro rf lora --sf 12 --bw 125k --cr 4/8 -p 51"
+    ),
+    "lora.opt.sf": "Yayılma faktörü (7-12)",
+    "lora.opt.bw": "Bant genişliği (Hz): 125k, 250k, 500k",
+    "lora.opt.cr": "Kodlama oranı: 4/5 … 4/8",
+    "lora.opt.payload": "Veri uzunluğu (bayt)",
+    "lora.opt.preamble": "Preamble uzunluğu (sembol)",
+    "lora.opt.no_crc": "Veri CRC'si olmadan",
+    "lora.opt.implicit": "Örtük başlık (implicit header) modu",
+    "lora.opt.duty": "Görev döngüsü sınırı % (AB 868 MHz: 1)",
+    "lora.opt.nf": "Alıcı gürültü figürü (dB)",
+    "lora.bad_cr": "kodlama oranı 4/5, 4/6, 4/7 ya da 4/8 olmalı",
+    "lora.airtime": "Havada kalma süresi",
+    "lora.symbol": "Sembol süresi",
+    "lora.bitrate": "Veri hızı",
+    "lora.sensitivity": "Hassasiyet (yaklaşık)",
+    "lora.per_hour": "{duty} ile saatte paket",
+    "lora.interval": "her",
+    "lora.on": "açık",
+    "lora.off": "kapalı",
+    "lora.note": "LDRO (düşük veri hızı optimizasyonu) sembol süresi 16 ms'yi aşınca otomatik açılır.",
+
+    # Fresnel
+    "fresnel.help": (
+        "Birinci Fresnel bölgesi ve görüş hattı için gereken anten yüksekliği.\n\n"
+        "r₁ = √(λ·d₁·d₂ / D)\n\n"
+        "Örnekler:\n"
+        "  elektro rf fresnel -f 868 -d 10\n"
+        "  elektro rf fresnel -f 2.4G -d 3 --at 500m"
+    ),
+    "fresnel.opt.at": "Engelin vericiye uzaklığı (varsayılan: orta nokta)",
+    "fresnel.opt.k": "Etkin dünya yarıçapı katsayısı (standart atmosfer 4/3)",
+    "fresnel.bad_at": "nokta iki anten arasında olmalı",
+    "fresnel.title": "Fresnel Bölgesi",
+    "fresnel.point": "Nokta (d₁ / d₂)",
+    "fresnel.r1": "1. Fresnel yarıçapı",
+    "fresnel.r60": "%60 açıklık",
+    "fresnel.bulge": "Dünya eğriliği",
+    "fresnel.need": "Gereken açıklık",
+    "fresnel.note": "Antenler arasındaki çizgi, o noktadaki engellerin bu kadar üstünden geçmeli.",
+
+    # koaksiyel
+    "coax.help": (
+        "Bir frekansta koaksiyel kablo kaybı (tipik değerler).\n\n"
+        "Kablolar: RG-58, RG-174, RG-316, RG-213, RG-6, LMR-195, LMR-240, LMR-400, LMR-600\n\n"
+        "Örnekler:\n"
+        "  elektro rf coax rg58 -f 868 -l 5\n"
+        "  elektro rf coax lmr400 -f 2.4G -l 20m"
+    ),
+    "coax.arg": "Kablo tipi, örn: rg58, lmr400",
+    "coax.opt.length": "Kablo uzunluğu (yalın sayı = m): 5, 150cm, 30ft",
+    "coax.metavar.length": "UZUNLUK",
+    "coax.unknown": "bilinmeyen kablo '{name}' (bilinenler: {options})",
+    "coax.per100": "100 m başına kayıp",
+    "coax.loss": "Toplam kayıp",
+    "coax.delivered": "İletilen güç",
+    "coax.delay": "Gecikme",
+    "coax.electrical": "Elektriksel uzunluk",
+    "coax.note": "Tipik değerlerdir; kablonun kendi datasheet'ine bak. Her konnektör ~0.1-0.3 dB ekler.",
+
+    # MCU ortak
+    "mcu.opt.clock": "Çevre birimi saati (Hz), örn: 16M, 72M",
+    "mcu.opt.mcu": "Mikrodenetleyici ailesi: avr, stm32, generic",
+    "mcu.unknown": "bilinmeyen MCU ailesi '{mcu}' (seçenekler: {options})",
+
+    # UART
+    "uart.help": (
+        "UART baud hızı kaydı ve hatası.\n\n"
+        "--baud verilmezse yaygın hızların tablosu gösterilir.\n\n"
+        "Örnekler:\n"
+        "  elektro uart -c 16M -b 115200\n"
+        "  elektro uart -c 16M\n"
+        "  elektro uart -c 72M -b 921600 -m stm32"
+    ),
+    "uart.opt.baud": "Baud hızı",
+    "uart.opt.oversample": "--mcu generic için örnekleme katı",
+    "uart.col.baud": "Baud",
+    "uart.col.mode": "Mod",
+    "uart.col.register": "Kayıt",
+    "uart.col.actual": "Gerçek",
+    "uart.col.error": "Hata",
+    "uart.impossible": "mümkün değil",
+    "uart.note": "±%2'ye kadar hata genelde çalışır; güvenilirlik için ±%1'in altında tut.",
+
+    # PWM
+    "pwm.help": (
+        "Bir frekans için timer/PWM ön bölücüsü ve periyot kaydı.\n\n"
+        "Örnekler:\n"
+        "  elektro pwm -c 16M -f 20k                 (AVR Timer1)\n"
+        "  elektro pwm -c 16M -f 1k --bits 8\n"
+        "  elektro pwm -c 72M -f 20k -m stm32 -d 25"
+    ),
+    "pwm.opt.freq": "PWM frekansı (Hz)",
+    "pwm.opt.bits": "Timer genişliği, bit (8, 16, 32)",
+    "pwm.opt.duty": "Görev oranı % (karşılaştırma değerini hesaplar)",
+    "pwm.bad": "saat ve frekans pozitif olmalı; bit 8, 10, 16 ya da 32 olmalı",
+    "pwm.impossible": "bu frekans bu saat/timer ile üretilemez",
+    "pwm.prescaler": "Ön bölücü",
+    "pwm.actual": "Gerçek frekans",
+    "pwm.error": "Hata",
+    "pwm.resolution": "Çözünürlük",
+    "pwm.steps": "adım",
+    "pwm.compare": "{duty} için karşılaştırma değeri",
+    "pwm.low_res": "Çözünürlük 8 bitin altında; frekansı düşür ya da saati yükselt.",
+
+    # ADC
+    "adc.help": (
+        "ADC/DAC: LSB değeri, gerilim ↔ kod dönüşümü, ideal SNR.\n\n"
+        "V = kod · Vref / 2ᴺ\n\n"
+        "Örnekler:\n"
+        "  elektro adc -b 12 --vref 3.3 --code 2048\n"
+        "  elektro adc -b 10 --vref 5 --volt 1.2"
+    ),
+    "adc.opt.bits": "Çözünürlük (bit)",
+    "adc.opt.vref": "Referans gerilimi (V)",
+    "adc.opt.code": "Dijital kod → gerilim",
+    "adc.opt.volt": "Gerilim → dijital kod",
+    "adc.steps": "Adım",
+    "adc.snr": "İdeal SNR",
+    "adc.voltage_of": "{code} kodunun gerilimi",
+    "adc.code_of": "{volt} için kod",
+    "adc.code_range": "kod 0 ile {max} arasında olmalı",
+    "adc.clipped": "Gerilim 0 … Vref dışında; kod kırpıldı.",
+    "adc.note": "Bazı datasheet'ler bölen olarak 2ᴺ − 1 kullanır; fark 1 LSB'dir.",
+
+    # I2C
+    "i2c.help": (
+        "Hat kapasitansı ve hıza göre I²C pull-up direnci aralığı.\n\n"
+        "Rmin = (Vdd − 0.4 V) / Iol     Rmax = tr / (0.8473 · Cb)\n\n"
+        "Örnekler:\n"
+        "  elektro i2c --cb 200p\n"
+        "  elektro i2c --vdd 5 --cb 100p -s 100k"
+    ),
+    "i2c.opt.vdd": "Pull-up besleme gerilimi (V)",
+    "i2c.opt.cb": "Toplam hat kapasitansı (F), örn: 200p (cihaz başına ≈10 pF + kablo)",
+    "i2c.opt.speed": "Hat hızı: 100k, 400k ya da 1M",
+    "i2c.bad_speed": "hız 100k, 400k ya da 1M olmalı",
+    "i2c.cb_limit": "I²C standardı en fazla 400 pF hat kapasitansına izin verir.",
+    "i2c.impossible": "uygun direnç yok: bu hız için hat kapasitansı çok yüksek",
+    "i2c.suggested": "Önerilen (E12)",
+    "i2c.note": "Küçük R = daha hızlı kenarlar ama daha çok akım; Rmin ile Rmax arasında kal.",
+
+    # CRC
+    "crc.help": (
+        "Bir bayt dizisinin CRC'si ve basit checksum'ları.\n\n"
+        "Örnekler:\n"
+        "  elektro crc \"01 03 00 00 00 0A\"\n"
+        "  elektro crc 0x31323334 -a modbus\n"
+        "  elektro crc \"123456789\" --text"
+    ),
+    "crc.arg": "Hex bayt olarak veri (\"01 03 0A\", 0x01030A) ya da --text ile metin",
+    "crc.opt.text": "Veriyi metin olarak al (UTF-8)",
+    "crc.opt.algo": "Sadece bu algoritma (örn: modbus, crc-32)",
+    "crc.bad_hex": "geçersiz hex veri (iki haneli hex çiftleri kullan, örn: \"01 03 0A\")",
+    "crc.unknown": "bilinmeyen algoritma '{algo}' (seçenekler: {options})",
+    "crc.title": "{n} baytın CRC'si",
+    "crc.col.algo": "Algoritma",
+    "crc.col.bytes": "Baytlar (gönderim sırası)",
+
+    # hesap makinesi
+    "calc.help": (
+        "Mühendislik gösterimini ve birimleri anlayan hesap makinesi.\n\n"
+        "Operatörler: + − * / ^ ( )   Fonksiyonlar: sqrt log ln exp sin cos tan db dbp par\n"
+        "Sabitler: pi e c.  par(a, b, …) = paralel eşdeğer.\n\n"
+        "Örnekler:\n"
+        "  elektro calc \"12V / (4k7 + 1k)\"\n"
+        "  elektro calc \"1 / (2*pi*sqrt(10u * 100n))\" -u Hz\n"
+        "  elektro calc \"par(1k, 2k2, 4k7)\" -u Ω\n"
+        "  elektro calc \"db(3.3 / 0.1)\""
+    ),
+    "calc.arg": "İfade (kabukta tırnak içinde yaz)",
+    "calc.opt.unit": "Sonuçla gösterilecek birim (V, A, Ω, Hz …)",
+    "calc.syntax": "ifade anlaşılamadı",
+    "calc.unknown_name": "bilinmeyen ad '{name}'",
+    "calc.unsupported": "ifadede desteklenmeyen öğe",
+    "calc.div_zero": "sıfıra bölme",
+    "calc.complex": "sonuç karmaşık sayı",
+
+    # birim
+    "unit.help": (
+        "Günlük elektronik işleri için birim dönüştürücü.\n\n"
+        "Sıcaklık: c f k · Uzunluk: m cm mm um in mil ft · dB: db pratio vratio\n"
+        "Kablo: awg mm2 · Bakır: oz · Açı: deg rad · Frekans: hz rpm\n\n"
+        "Örnekler:\n"
+        "  elektro unit 25 c\n"
+        "  elektro unit 10 mil mm\n"
+        "  elektro unit 6 db\n"
+        "  elektro unit 22 awg"
+    ),
+    "unit.arg.value": "Değer",
+    "unit.arg.src": "Kaynak birim ({units})",
+    "unit.arg.dst": "Hedef birim (boşsa hepsi)",
+    "unit.unknown": "bilinmeyen birim '{unit}' (seçenekler: {options})",
+    "unit.no_path": "{src} → {dst} dönüşümü yok",
+    "unit.below_zero": "mutlak sıfırın altında",
+    "unit.power_ratio": "güç oranı",
+    "unit.voltage_ratio": "gerilim oranı",
+    "unit.period": "periyot (s)",
+
+    # datasheet önbelleği
+    "ds.opt.history": "Daha önce indirilen datasheet'leri listele (önbellek)",
+    "ds.from_cache": "Önbellekte bulundu, indirmeye gerek yok.",
+    "ds.cache_source": "önbellek",
+    "ds.cache_empty": "Datasheet önbelleği boş.",
+    "ds.cache_title": "İndirilen datasheet'ler",
+    "ds.col.part": "Parça",
+    "ds.col.size": "Boyut",
+    "ds.col.date": "Tarih",
+})

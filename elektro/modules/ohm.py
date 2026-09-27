@@ -74,7 +74,8 @@ def ohm(
         t("ohm.current"): format_si(res["i"], "A"),
         t("ohm.resistance"): format_si(res["r"], "Ω"),
         t("ohm.power"): format_si(res["p"], "W"),
-    })
+    }, data={"voltage_v": res["v"], "current_a": res["i"], "resistance_ohm": res["r"],
+             "power_w": res["p"], "inconsistent": bool(res.get("_conflicts"))})
 
 
 def _ask():
