@@ -10,6 +10,7 @@ from rich.panel import Panel
 from rich.table import Table
 from typer.core import TyperGroup
 
+from elektro.i18n import t
 from elektro.units import parse_value
 
 console = Console(highlight=False)
@@ -33,17 +34,17 @@ def theory(*lines: str) -> None:
 
 
 def fail(message: str, code: int = 1) -> "typer.Exit":
-    err_console.print(f"[bold red]Hata:[/] {message}")
+    err_console.print(f"[bold red]{t('ui.error')}:[/] {message}")
     raise typer.Exit(code)
 
 
 def warn(message: str) -> None:
-    console.print(f"[yellow]Uyarı:[/] {message}")
+    console.print(f"[yellow]{t('ui.warning')}:[/] {message}")
 
 
 def eng(help_text: str) -> dict:
     """Mühendislik gösterimini (1k, 100n, 4k7) kabul eden seçenekler için ortak ayarlar."""
-    return {"parser": parse_value, "metavar": "DEĞER", "help": help_text}
+    return {"parser": parse_value, "metavar": t("ui.metavar.value"), "help": help_text}
 
 
 class DefaultCommandGroup(TyperGroup):

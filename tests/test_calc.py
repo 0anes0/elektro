@@ -63,7 +63,7 @@ def test_resistor_decode():
 def test_resistor_encode_roundtrip(value):
     for bands in (4, 5):
         colors = resistor.encode_value(value, bands, 5 if bands == 4 else 1)
-        decoded = resistor.decode_bands([c.key for c in colors])["value"]
+        decoded = resistor.decode_bands([c.code_iec for c in colors])["value"]
         # 4 bant 2 anlamlı hane taşır (12.4k -> 12k), 5 bant 3 hane
         assert decoded == pytest.approx(value, rel=0.05 if bands == 4 else 1e-9)
 
@@ -96,7 +96,7 @@ def test_led():
 
 def test_cap_code():
     assert passive.decode_cap("104")[0] == pytest.approx(100e-9)
-    assert passive.decode_cap("472K") == (pytest.approx(4.7e-9), "±%10")
+    assert passive.decode_cap("472K") == (pytest.approx(4.7e-9), "±10%")
     assert passive.encode_cap(parse_value("100n")) == "104"
     assert passive.encode_cap(parse_value("22p")) == "220"
 

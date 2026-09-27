@@ -9,6 +9,7 @@ from typing import List, Optional
 import typer
 from rich.table import Table
 
+from elektro.i18n import pct, t
 from elektro.ui import console, eng, fail, result_panel, warn
 from elektro.units import (SERIES_NAMES, format_si, nearest_standard, normalize_series,
                            parse_value, series_neighbors, series_values)
@@ -17,7 +18,7 @@ POWER_RATINGS = [0.063, 0.1, 0.125, 0.25, 0.5, 1, 2, 3, 5, 10]
 
 
 def _values_arg(help_text: str):
-    return typer.Argument(..., parser=parse_value, metavar="DEĞERLER...", help=help_text)
+    return typer.Argument(..., parser=parse_value, metavar=t("ui.metavar.values"), help=help_text)
 
 
 def series_sum(values: List[float]) -> float:
@@ -35,37 +36,32 @@ def _combine(values, capacitor, inductor, parallel):
     # Kondansatörde formüller yer değiştirir.
     use_reciprocal = parallel != capacitor
     total = parallel_sum(values) if use_reciprocal else series_sum(values)
-    title = ("Paralel" if parallel else "Seri") + " Bağlantı"
-    rows = {f"{k + 1}. eleman": format_si(v, unit) for k, v in enumerate(values)}
-    rows["Toplam"] = format_si(total, unit)
-    result_panel(title, rows)
+    rows = {t("combine.item", n=k + 1): format_si(v, unit) for k, v in enumerate(values)}
+    rows[t("combine.total")] = format_si(total, unit)
+    result_panel(t("combine.parallel_title" if parallel else "combine.series_title"), rows)
+
+
+def _cap_opt():
+    return typer.Option(False, "--cap", "-c", help=t("combine.opt.cap"))
+
+
+def _ind_opt():
+    return typer.Option(False, "--ind", "-l", help=t("combine.opt.ind"))
 
 
 def series(
-    values: List[float] = _values_arg("Eleman değerleri, örn: 1k 2k2 470"),
-    capacitor: bool = typer.Option(False, "--cap", "-c", help="Kondansatör olarak hesapla"),
-    inductor: bool = typer.Option(False, "--ind", "-l", help="Bobin olarak hesapla"),
+    values: List[float] = _values_arg(t("combine.arg.series")),
+    capacitor: bool = _cap_opt(),
+    inductor: bool = _ind_opt(),
 ):
-    """Seri bağlı elemanların toplamı (varsayılan: direnç).
-
-    Örnekler:
-      elektro series 1k 2k2 470
-      elektro series 100n 100n --cap
-    """
     _combine(values, capacitor, inductor, parallel=False)
 
 
 def parallel(
-    values: List[float] = _values_arg("Eleman değerleri, örn: 1k 1k"),
-    capacitor: bool = typer.Option(False, "--cap", "-c", help="Kondansatör olarak hesapla"),
-    inductor: bool = typer.Option(False, "--ind", "-l", help="Bobin olarak hesapla"),
+    values: List[float] = _values_arg(t("combine.arg.parallel")),
+    capacitor: bool = _cap_opt(),
+    inductor: bool = _ind_opt(),
 ):
-    """Paralel bağlı elemanların eşdeğeri (varsayılan: direnç).
-
-    Örnekler:
-      elektro parallel 1k 1k
-      elektro parallel 10u 22u --cap
-    """
     _combine(values, capacitor, inductor, parallel=True)
 
 
@@ -75,7 +71,7 @@ def best_divider(vin: float, vout: float, series: str = "E24",
                  r_min: float = 1e3, r_max: float = 1e6, limit: int = 5):
     """Hedef çıkış gerilimi için en iyi R1/R2 çiftlerini arar (R2 toprağa bağlı)."""
     if not 0 < vout < vin:
-        raise ValueError("0 < Vout < Vin olmalı")
+        raise ValueError(t("div.range"))
     ratio = vout / vin
     results = []
     for r2 in series_values(series, r_min, r_max):
@@ -100,55 +96,45 @@ def best_divider(vin: float, vout: float, series: str = "E24",
 
 
 def divider(
-    vin: float = typer.Option(..., "--vin", **eng("Giriş gerilimi (V)")),
-    r1: Optional[float] = typer.Option(None, "--r1", **eng("Üst direnç (Vin ile çıkış arası)")),
-    r2: Optional[float] = typer.Option(None, "--r2", **eng("Alt direnç (çıkış ile toprak arası)")),
-    vout: Optional[float] = typer.Option(None, "--vout", **eng("Hedef çıkış (R1/R2 önerisi için)")),
-    series: str = typer.Option("E24", "--series", "-s", help="Öneri için E serisi"),
-    load: Optional[float] = typer.Option(None, "--load", **eng("Çıkışa bağlı yük direnci")),
+    vin: float = typer.Option(..., "--vin", **eng(t("div.opt.vin"))),
+    r1: Optional[float] = typer.Option(None, "--r1", **eng(t("div.opt.r1"))),
+    r2: Optional[float] = typer.Option(None, "--r2", **eng(t("div.opt.r2"))),
+    vout: Optional[float] = typer.Option(None, "--vout", **eng(t("div.opt.vout"))),
+    series: str = typer.Option("E24", "--series", "-s", help=t("div.opt.series")),
+    load: Optional[float] = typer.Option(None, "--load", **eng(t("div.opt.load"))),
 ):
-    """Gerilim bölücü: Vout = Vin · R2 / (R1 + R2)
-
-    R1 ve R2 verilirse çıkışı hesaplar; --vout verilirse standart değerlerden
-    en iyi R1/R2 çiftlerini önerir.
-
-    Örnekler:
-      elektro divider --vin 12 --r1 10k --r2 4k7
-      elektro divider --vin 5 --vout 3.3
-      elektro divider --vin 12 --vout 3.3 --series E12
-    """
     if r1 is not None and r2 is not None:
         r2_eff = parallel_sum([r2, load]) if load else r2
         out = vin * r2_eff / (r1 + r2_eff)
         i = vin / (r1 + r2_eff)
         rows = {
             "Vout": format_si(out, "V"),
-            "Oran": f"{out / vin:.4f}",
-            "Akım": format_si(i, "A"),
+            t("div.ratio"): f"{out / vin:.4f}",
+            t("div.current"): format_si(i, "A"),
             "P(R1)": format_si(i * i * r1, "W"),
             "P(R2)": format_si((out ** 2) / r2, "W"),
         }
         if load:
-            rows["Yüksüz Vout"] = format_si(vin * r2 / (r1 + r2), "V")
-        result_panel("Gerilim Bölücü", rows)
+            rows[t("div.unloaded")] = format_si(vin * r2 / (r1 + r2), "V")
+        result_panel(t("div.title"), rows)
         return
 
     if vout is None:
-        fail("--r1 ve --r2 ya da --vout verilmeli")
+        fail(t("div.need"))
     try:
         best = best_divider(vin, vout, normalize_series(series))
     except ValueError as e:
         fail(str(e))
     if not best:
-        fail("uygun çift bulunamadı")
+        fail(t("div.none"))
 
-    t = Table(title=f"{format_si(vin, 'V')} → {format_si(vout, 'V')} ({normalize_series(series)})")
-    for col in ("R1", "R2", "Vout", "Hata", "Akım"):
-        t.add_column(col, justify="right")
+    tbl = Table(title=f"{format_si(vin, 'V')} → {format_si(vout, 'V')} ({normalize_series(series)})")
+    for col in ("R1", "R2", "Vout", t("div.col.error"), t("div.col.current")):
+        tbl.add_column(col, justify="right")
     for b in best:
-        t.add_row(format_si(b["r1"], "Ω"), format_si(b["r2"], "Ω"), format_si(b["vout"], "V"),
-                  f"%{b['error'] * 100:.2f}", format_si(vin / (b["r1"] + b["r2"]), "A"))
-    console.print(t)
+        tbl.add_row(format_si(b["r1"], "Ω"), format_si(b["r2"], "Ω"), format_si(b["vout"], "V"),
+                    pct(f"{b['error'] * 100:.2f}"), format_si(vin / (b["r1"] + b["r2"]), "A"))
+    console.print(tbl)
 
 
 # --- LED ------------------------------------------------------------------------
@@ -156,25 +142,19 @@ def divider(
 def led_resistor(vs: float, vf: float, current: float, count: int = 1) -> float:
     drop = vf * count
     if vs <= drop:
-        raise ValueError(f"besleme ({vs} V) LED gerilim düşümünden ({drop:g} V) büyük olmalı")
+        raise ValueError(t("led.supply_low", vs=f"{vs:g}", drop=f"{drop:g}"))
     if current <= 0:
-        raise ValueError("akım pozitif olmalı")
+        raise ValueError(t("led.current_pos"))
     return (vs - drop) / current
 
 
 def led(
-    vs: float = typer.Option(..., "--vs", **eng("Besleme gerilimi (V)")),
-    vf: float = typer.Option(2.0, "--vf", **eng("LED ileri gerilimi (V). Kırmızı ~2, mavi/beyaz ~3")),
-    current: float = typer.Option(0.02, "--if", "-i", **eng("LED akımı (A), örn: 20m")),
-    count: int = typer.Option(1, "--count", "-n", help="Seri bağlı LED sayısı"),
-    series: str = typer.Option("E12", "--series", "-s", help="Önerilecek E serisi"),
+    vs: float = typer.Option(..., "--vs", **eng(t("led.opt.vs"))),
+    vf: float = typer.Option(2.0, "--vf", **eng(t("led.opt.vf"))),
+    current: float = typer.Option(0.02, "--if", "-i", **eng(t("led.opt.if"))),
+    count: int = typer.Option(1, "--count", "-n", help=t("led.opt.count")),
+    series: str = typer.Option("E12", "--series", "-s", help=t("led.opt.series")),
 ):
-    """LED ön direnci hesabı.
-
-    Örnekler:
-      elektro led --vs 5
-      elektro led --vs 12 --vf 3.1 -i 15m -n 3
-    """
     try:
         r = led_resistor(vs, vf, current, count)
         _, std = series_neighbors(r, series)      # güvenli taraf: bir üst değer
@@ -183,56 +163,64 @@ def led(
     i_real = (vs - vf * count) / std
     p = i_real ** 2 * std
     rating = next((x for x in POWER_RATINGS if x >= 2 * p), None)
-    result_panel("LED Direnci", {
-        "Hesaplanan R": format_si(r, "Ω"),
-        f"Önerilen ({normalize_series(series)})": format_si(std, "Ω"),
-        "Gerçek akım": format_si(i_real, "A"),
-        "Direnç gücü": format_si(p, "W"),
-        "Önerilen güç sınıfı": f"{rating:g} W" if rating else "> 10 W (farklı çözüm düşün)",
-        "Verim": f"%{vf * count / vs * 100:.0f}",
+    result_panel(t("led.title"), {
+        t("led.calc_r"): format_si(r, "Ω"),
+        t("led.suggested", series=normalize_series(series)): format_si(std, "Ω"),
+        t("led.real_i"): format_si(i_real, "A"),
+        t("led.power"): format_si(p, "W"),
+        t("led.rating"): f"{rating:g} W" if rating else t("led.rating_high"),
+        t("led.efficiency"): pct(f"{vf * count / vs * 100:.0f}"),
     })
 
 
 # --- E serisi --------------------------------------------------------------------
 
 def eseries(
-    value: float = typer.Argument(..., parser=parse_value, metavar="DEĞER", help="Aranan değer, örn: 4k8"),
-    series: Optional[str] = typer.Option(None, "--series", "-s", help="Sadece bu seri (örn: E24)"),
+    value: float = typer.Argument(..., parser=parse_value, metavar=t("ui.metavar.value"),
+                                  help=t("eseries.arg")),
+    series: Optional[str] = typer.Option(None, "--series", "-s", help=t("eseries.opt.series")),
 ):
-    """Bir değere en yakın standart (E3…E192) değerleri gösterir.
-
-    Örnekler:
-      elektro eseries 4k8
-      elektro eseries 3.3u -s E12
-    """
     if value <= 0:
-        fail("değer pozitif olmalı")
-    names = [normalize_series(series)] if series else SERIES_NAMES
-    t = Table(title=f"{format_si(value)} için standart değerler")
-    for col in ("Seri", "Alt", "Üst", "En yakın", "Hata"):
-        t.add_column(col, justify="right")
+        fail(t("common.positive"))
+    try:
+        names = [normalize_series(series)] if series else SERIES_NAMES
+    except ValueError as e:
+        fail(str(e))
+    tbl = Table(title=t("eseries.title", value=format_si(value)))
+    for key in ("eseries.col.series", "eseries.col.lower", "eseries.col.upper",
+                "eseries.col.nearest", "eseries.col.error"):
+        tbl.add_column(t(key), justify="right")
     for name in names:
         lo, hi = series_neighbors(value, name)
         near = nearest_standard(value, name)
-        t.add_row(name, format_si(lo), format_si(hi), f"[bold]{format_si(near)}[/]",
-                  f"%{(near - value) / value * 100:+.2f}")
-    console.print(t)
+        tbl.add_row(name, format_si(lo), format_si(hi), f"[bold]{format_si(near)}[/]",
+                    pct(f"{(near - value) / value * 100:+.2f}"))
+    console.print(tbl)
 
 
 # --- Kondansatör kodu --------------------------------------------------------------
 
-CAP_TOLERANCE = {"B": "±0.1 pF", "C": "±0.25 pF", "D": "±0.5 pF", "F": "±%1", "G": "±%2",
-                 "J": "±%5", "K": "±%10", "M": "±%20", "Z": "+%80 / -%20"}
+CAP_TOLERANCE = {"B": "±0.1 pF", "C": "±0.25 pF", "D": "±0.5 pF", "F": "1", "G": "2",
+                 "J": "5", "K": "10", "M": "20", "Z": None}
 
 
 def decode_cap(code: str):
     c = code.strip().upper()
     m = re.fullmatch(r"(\d{2})(\d)([A-Z]?)", c)
     if not m:
-        raise ValueError("3 haneli kod bekleniyor (örn: 104, 472K)")
+        raise ValueError(t("cap.bad_code"))
     exp = int(m.group(2))
     mult = {8: 0.01, 9: 0.1}.get(exp, 10 ** exp)
-    return int(m.group(1)) * mult * 1e-12, CAP_TOLERANCE.get(m.group(3))
+    letter = m.group(3)
+    if not letter or letter not in CAP_TOLERANCE:
+        tol = None
+    elif letter == "Z":
+        tol = f"+{pct('80')} / -{pct('20')}"
+    elif "pF" in CAP_TOLERANCE[letter]:
+        tol = CAP_TOLERANCE[letter]
+    else:
+        tol = "±" + pct(CAP_TOLERANCE[letter])
+    return int(m.group(1)) * mult * 1e-12, tol
 
 
 def encode_cap(value: float) -> str:
@@ -246,29 +234,22 @@ def encode_cap(value: float) -> str:
     return f"{sig}{exp}"
 
 
-def cap(code: str = typer.Argument(..., help="Kod (104, 472K) veya değer (100n)")):
-    """Seramik kondansatör kodunu çözer ya da değerden kod üretir.
-
-    Örnekler:
-      elektro cap 104       → 100 nF
-      elektro cap 472K      → 4.7 nF ±%10
-      elektro cap 22n       → 223
-    """
+def cap(code: str = typer.Argument(..., help=t("cap.arg"))):
     if re.fullmatch(r"\d{3}[A-Za-z]?", code.strip()):
         try:
             value, tol = decode_cap(code)
         except ValueError as e:
             fail(str(e))
-        rows = {"Kod": code.upper(), "Değer": format_si(value, "F"),
+        rows = {t("cap.code"): code.upper(), t("cap.value"): format_si(value, "F"),
                 "pF": f"{value / 1e-12:g} pF"}
         if tol:
-            rows["Tolerans"] = tol
-        result_panel("Kondansatör", rows)
+            rows[t("cap.tolerance")] = tol
+        result_panel(t("cap.title"), rows)
         return
     try:
         value = parse_value(code)
     except ValueError as e:
         fail(str(e))
     if value >= 1e-3:
-        warn("bu değer muhtemelen seramik kondansatör değil")
-    result_panel("Kondansatör", {"Değer": format_si(value, "F"), "Kod": encode_cap(value)})
+        warn(t("cap.not_ceramic"))
+    result_panel(t("cap.title"), {t("cap.value"): format_si(value, "F"), t("cap.code"): encode_cap(value)})

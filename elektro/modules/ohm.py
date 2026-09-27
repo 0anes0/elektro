@@ -8,6 +8,7 @@ from typing import Optional
 import typer
 from rich.prompt import Prompt
 
+from elektro.i18n import t
 from elektro.ui import console, eng, fail, result_panel, warn
 from elektro.units import format_si, parse_value
 
@@ -16,9 +17,9 @@ def solve(v=None, i=None, r=None, p=None) -> dict:
     """V, I, R, P'den herhangi ikisi verilince diğer ikisini hesaplar."""
     given = {k: x for k, x in dict(v=v, i=i, r=r, p=p).items() if x is not None}
     if len(given) < 2:
-        raise ValueError("en az 2 değer gerekli")
+        raise ValueError(t("ohm.need_two"))
     if r is not None and r < 0 or p is not None and p < 0:
-        raise ValueError("direnç ve güç negatif olamaz")
+        raise ValueError(t("ohm.negative"))
 
     try:
         if v is not None and i is not None:
@@ -40,7 +41,7 @@ def solve(v=None, i=None, r=None, p=None) -> dict:
             r_, p_ = r, p
             v_, i_ = math.sqrt(p * r), math.sqrt(p / r)
     except ZeroDivisionError:
-        raise ValueError("sıfıra bölme — girilen değerlerle devre tanımsız")
+        raise ValueError(t("ohm.div_zero"))
 
     result = {"v": v_, "i": i_, "r": r_, "p": p_}
     # Fazladan verilen değerler hesapla tutarlı mı?
@@ -52,22 +53,11 @@ def solve(v=None, i=None, r=None, p=None) -> dict:
 
 
 def ohm(
-    v: Optional[float] = typer.Option(None, "--voltage", "-v", **eng("Gerilim (V)")),
-    i: Optional[float] = typer.Option(None, "--current", "-i", **eng("Akım (A), örn: 20m")),
-    r: Optional[float] = typer.Option(None, "--resistance", "-r", **eng("Direnç (Ω), örn: 4k7")),
-    p: Optional[float] = typer.Option(None, "--power", "-p", **eng("Güç (W)")),
+    v: Optional[float] = typer.Option(None, "--voltage", "-v", **eng(t("ohm.opt.v"))),
+    i: Optional[float] = typer.Option(None, "--current", "-i", **eng(t("ohm.opt.i"))),
+    r: Optional[float] = typer.Option(None, "--resistance", "-r", **eng(t("ohm.opt.r"))),
+    p: Optional[float] = typer.Option(None, "--power", "-p", **eng(t("ohm.opt.p"))),
 ):
-    """Ohm kanunu: V, I, R, P'den herhangi ikisini ver, diğerlerini hesaplasın.
-
-    V = I·R    P = V·I = I²·R = V²/R
-
-    Parametresiz çalıştırılırsa soru sorarak ilerler.
-
-    Örnekler:
-      elektro ohm -v 12 -r 1k
-      elektro ohm -i 20m -p 0.5
-      elektro ohm
-    """
     if all(x is None for x in (v, i, r, p)):
         v, i, r, p = _ask()
 
@@ -77,22 +67,22 @@ def ohm(
         fail(str(e))
 
     if res.get("_conflicts"):
-        warn("Verilen değerler birbiriyle tutarsız; ilk iki değer esas alındı.")
+        warn(t("ohm.conflict"))
 
-    result_panel("Ohm Kanunu", {
-        "Gerilim (V)": format_si(res["v"], "V"),
-        "Akım (I)": format_si(res["i"], "A"),
-        "Direnç (R)": format_si(res["r"], "Ω"),
-        "Güç (P)": format_si(res["p"], "W"),
+    result_panel(t("ohm.title"), {
+        t("ohm.voltage"): format_si(res["v"], "V"),
+        t("ohm.current"): format_si(res["i"], "A"),
+        t("ohm.resistance"): format_si(res["r"], "Ω"),
+        t("ohm.power"): format_si(res["p"], "W"),
     })
 
 
 def _ask():
-    console.print("[bold]Ohm Kanunu Sihirbazı[/] — bilmediğin değeri boş bırak (Enter)\n")
+    console.print(f"[bold]{t('ohm.wizard')}[/]\n")
     vals = []
-    for label in ("Gerilim V", "Akım I", "Direnç R", "Güç P"):
+    for key in ("ohm.ask.v", "ohm.ask.i", "ohm.ask.r", "ohm.ask.p"):
         while True:
-            raw = Prompt.ask(f"  {label}", default="", show_default=False).strip()
+            raw = Prompt.ask(f"  {t(key)}", default="", show_default=False).strip()
             if not raw:
                 vals.append(None)
                 break

@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 import re
 
+from elektro.i18n import t
+
 _PREFIXES = {
     "T": 1e12, "G": 1e9, "M": 1e6, "meg": 1e6, "k": 1e3, "K": 1e3,
     "R": 1.0, "r": 1.0,
@@ -30,7 +32,7 @@ def parse_value(text: str | float | int) -> float:
         return float(text)
     s = str(text).strip().replace(" ", "").replace(",", ".")
     if not s:
-        raise ValueError("boş değer")
+        raise ValueError(t("units.empty"))
     try:
         return float(s)
     except ValueError:
@@ -43,12 +45,12 @@ def parse_value(text: str | float | int) -> float:
 
     m = _NUMBER_RE.match(s)
     if not m:
-        raise ValueError(f"'{text}' anlaşılamadı (örnek: 1k, 4k7, 100n, 2.2u, 1e-3)")
+        raise ValueError(t("units.invalid", text=text))
     num, prefix, frac = m.group("num"), m.group("prefix"), m.group("frac")
     if frac:
         # 4k7 -> 4.7k, 1R5 -> 1.5
         if not prefix or "." in num or "e" in num.lower():
-            raise ValueError(f"'{text}' anlaşılamadı")
+            raise ValueError(t("units.invalid", text=text))
         num = f"{num}.{frac}"
     return float(num) * _PREFIXES.get(prefix or "", 1.0)
 
@@ -112,14 +114,14 @@ def normalize_series(name: str) -> str:
     if not key.startswith("E"):
         key = "E" + key
     if key not in E_SERIES_BASE:
-        raise ValueError(f"bilinmeyen seri '{name}' (seçenekler: {', '.join(SERIES_NAMES)})")
+        raise ValueError(t("units.unknown_series", name=name, options=", ".join(SERIES_NAMES)))
     return key
 
 
 def series_neighbors(value: float, series: str = "E24") -> tuple[float, float]:
     """Değerin hemen altındaki ve üstündeki (veya eşit) standart değerler."""
     if value <= 0:
-        raise ValueError("değer pozitif olmalı")
+        raise ValueError(t("common.positive"))
     base = E_SERIES_BASE[normalize_series(series)]
     decade = math.floor(math.log10(value))
     candidates = []

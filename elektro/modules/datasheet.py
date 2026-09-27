@@ -27,6 +27,7 @@ import typer
 from bs4 import BeautifulSoup
 from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TransferSpeedColumn
 
+from elektro.i18n import t
 from elektro.ui import console, fail
 
 USER_AGENT = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -174,15 +175,15 @@ def iter_candidates(session: requests.Session, part: str, verbose: bool = True) 
         if verbose:
             console.print(f"[dim]• {title}[/]")
 
-    step("Üretici siteleri kontrol ediliyor")
+    step(t("ds.step.maker"))
     yield from fresh(manufacturer_candidates(session, part))
-    step("LCSC/JLCPCB parça veritabanı aranıyor")
+    step(t("ds.step.lcsc"))
     yield from fresh(jlcpcb_candidates(session, part))
-    step("DuckDuckGo'da aranıyor")
+    step(t("ds.step.ddg"))
     try:
         yield from fresh(duckduckgo_candidates(session, part))
     except SearchBlocked:
-        step("DuckDuckGo şu an bot koruması gösteriyor, atlandı")
+        step(t("ds.step.ddg_blocked"))
 
 
 # --- İndirme -----------------------------------------------------------------------
@@ -260,7 +261,7 @@ def open_file(path: Path) -> None:
     if shutil.which(opener):
         subprocess.Popen([opener, str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
-        console.print(f"[yellow]'{opener}' bulunamadı, dosyayı elle aç: {path}[/]")
+        console.print(f"[yellow]{t('ds.no_opener', opener=opener, path=path)}[/]")
 
 
 def manual_links(part: str) -> List[str]:
@@ -276,31 +277,20 @@ def manual_links(part: str) -> List[str]:
 # --- Komut -----------------------------------------------------------------------
 
 def datasheet(
-    part: str = typer.Argument(..., help="Parça adı, örn: lm358, ne555, ams1117, esp32"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Kayıt yolu (varsayılan: <parça>_datasheet.pdf)"),
-    open_after: bool = typer.Option(False, "--open", help="İndirdikten sonra PDF'i aç"),
-    list_only: bool = typer.Option(False, "--list", "-l", help="İndirmeden bulunan adayları listele"),
-    force: bool = typer.Option(False, "--force", "-f", help="Dosya varsa üzerine yaz"),
-    max_try: int = typer.Option(15, "--max", "-n", help="Denenecek en fazla aday sayısı"),
+    part: str = typer.Argument(..., help=t("ds.arg.part")),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help=t("ds.opt.output")),
+    open_after: bool = typer.Option(False, "--open", help=t("ds.opt.open")),
+    list_only: bool = typer.Option(False, "--list", "-l", help=t("ds.opt.list")),
+    force: bool = typer.Option(False, "--force", "-f", help=t("ds.opt.force")),
+    max_try: int = typer.Option(15, "--max", "-n", help=t("ds.opt.max")),
 ):
-    """Komponent datasheet'ini bulup bulunduğun klasöre indirir.
-
-    Önce üretici sitelerine, sonra LCSC parça veritabanına, en son
-    DuckDuckGo aramasına bakar. İnen dosyanın gerçekten PDF olduğu doğrulanır.
-
-    Örnekler:
-      elektro datasheet lm358
-      elektro datasheet ams1117 --open
-      elektro datasheet 2n2222 -o transistor.pdf
-      elektro datasheet esp32 --list
-    """
     part = part.strip()
     if not part:
-        fail("parça adı boş olamaz")
+        fail(t("ds.empty"))
     session = make_session()
 
     if list_only:
-        console.print(f"[bold]'{part}' için adaylar:[/]\n")
+        console.print(f"[bold]{t('ds.candidates', part=part)}[/]\n")
         found = False
         for i, c in enumerate(iter_candidates(session, part, verbose=False), 1):
             found = True
@@ -308,7 +298,7 @@ def datasheet(
             if i >= max_try:
                 break
         if not found:
-            console.print("[red]Aday bulunamadı.[/]")
+            console.print(f"[red]{t('ds.no_candidates')}[/]")
             raise typer.Exit(1)
         return
 
@@ -318,14 +308,14 @@ def datasheet(
         dest = dest / f"{safe}_datasheet.pdf"
     dest = dest.resolve()
     if dest.exists() and not force:
-        console.print(f"[yellow]Dosya zaten var:[/] {dest}\n[dim]Tekrar indirmek için --force kullan.[/]")
+        console.print(f"[yellow]{t('ds.exists')}:[/] {dest}\n[dim]{t('ds.use_force')}[/]")
         if open_after:
             open_file(dest)
         return
     if not dest.parent.is_dir():
-        fail(f"klasör yok: {dest.parent}")
+        fail(t("ds.no_dir", path=dest.parent))
 
-    console.print(f"[bold]🔍 '{part}' için datasheet aranıyor[/]")
+    console.print(f"[bold]🔍 {t('ds.searching', part=part)}[/]")
     tried = 0
     try:
         for cand in iter_candidates(session, part):
@@ -334,23 +324,23 @@ def datasheet(
             real_url = fetch_pdf(session, cand.url, dest)
             if real_url:
                 size = dest.stat().st_size
-                console.print(f"[bold green]✓ İndirildi[/] [dim]({size / 1024:.0f} KB, {urlparse(real_url).netloc})[/]")
+                console.print(f"[bold green]✓ {t('ds.downloaded')}[/] [dim]({size / 1024:.0f} KB, {urlparse(real_url).netloc})[/]")
                 console.print(f"  {dest}")
                 if open_after:
                     open_file(dest)
                 return
-            console.print("      [dim]PDF alınamadı, sıradaki deneniyor[/]")
+            console.print(f"      [dim]{t('ds.try_next')}[/]")
             if tried >= max_try:
                 break
     except KeyboardInterrupt:
-        console.print("\n[yellow]İptal edildi.[/]")
+        console.print(f"\n[yellow]{t('ds.cancelled')}[/]")
         raise typer.Exit(130)
 
     if tried == 0:
-        console.print("\n[bold red]Hiçbir kaynakta sonuç bulunamadı.[/] İnternet bağlantını ya da parça adını kontrol et.")
+        console.print(f"\n[bold red]{t('ds.nothing')}[/] {t('ds.check_net')}")
     else:
-        console.print("\n[bold red]Bulunan adayların hiçbirinden PDF indirilemedi.[/]")
-    console.print("[dim]Elle aramak için:[/]")
+        console.print(f"\n[bold red]{t('ds.all_failed')}[/]")
+    console.print(f"[dim]{t('ds.manual')}[/]")
     for link in manual_links(part):
         console.print(f"  {link}")
     raise typer.Exit(1)
