@@ -10,7 +10,8 @@ import typer
 from rich.table import Table
 
 from elektro.i18n import pct, t
-from elektro.ui import emit, eng, fail, result_panel, warn
+from elektro.modules.wiring import parse_length
+from elektro.ui import cli_parser, emit, eng, fail, result_panel, theory, warn
 from elektro.units import (SERIES_NAMES, format_si, nearest_standard, normalize_series,
                            parse_value, series_neighbors, series_values)
 
@@ -18,7 +19,7 @@ POWER_RATINGS = [0.063, 0.1, 0.125, 0.25, 0.5, 1, 2, 3, 5, 10]
 
 
 def _values_arg(help_text: str):
-    return typer.Argument(..., parser=parse_value, metavar=t("ui.metavar.values"), help=help_text)
+    return typer.Argument(..., parser=cli_parser(parse_value), metavar=t("ui.metavar.values"), help=help_text)
 
 
 def series_sum(values: List[float]) -> float:
@@ -183,7 +184,7 @@ def led(
 # --- E serisi --------------------------------------------------------------------
 
 def eseries(
-    value: float = typer.Argument(..., parser=parse_value, metavar=t("ui.metavar.value"),
+    value: float = typer.Argument(..., parser=cli_parser(parse_value), metavar=t("ui.metavar.value"),
                                   help=t("eseries.arg")),
     series: Optional[str] = typer.Option(None, "--series", "-s", help=t("eseries.opt.series")),
 ):
@@ -265,3 +266,97 @@ def cap(code: str = typer.Argument(..., help=t("cap.arg"))):
         warn(t("cap.not_ceramic"))
     result_panel(t("cap.title"), {t("cap.value"): format_si(value, "F"), t("cap.code"): encode_cap(value)},
                  data={"capacitance_f": value, "code": encode_cap(value)})
+
+
+# --- Hava nüveli bobin (Wheeler) ----------------------------------------------------------
+
+INCH = 25.4e-3
+
+
+def wheeler_l(n: float, coil_d: float, length: float) -> float:
+    """Tek katlı hava nüveli bobin, Wheeler: L[µH] = r²N² / (9r + 10ℓ), r ve ℓ inç. Girdi m, çıktı H."""
+    r = coil_d / 2 / INCH
+    ell = length / INCH
+    return r * r * n * n / (9 * r + 10 * ell) * 1e-6
+
+
+def coil_turns(target: float, form_d: float, wire_d: float) -> float:
+    """Sık sarımlı bobinde hedef L için sarım sayısı (sürekli; sayısal çözüm)."""
+    lo, hi = 0.1, 1e5
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if wheeler_l(mid, form_d + wire_d, mid * wire_d) < target:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def parse_mm(text) -> float:
+    """Yalın sayı mm kabul edilir ('10' = 10 mm); '1cm', '0.5in' de olur. Sonuç metre."""
+    if isinstance(text, float):
+        return text
+    s = str(text).strip().lower().replace(",", ".")
+    try:
+        return float(s) * 1e-3
+    except ValueError:
+        return parse_length(s)
+
+
+def coil(
+    l_target: Optional[float] = typer.Option(None, "--l", **eng(t("coil.opt.l"))),
+    turns: Optional[float] = typer.Option(None, "--n", help=t("coil.opt.n")),
+    form_d: float = typer.Option(..., "--d", parser=cli_parser(parse_mm), metavar="mm", help=t("coil.opt.d")),
+    wire_d: float = typer.Option(0.5e-3, "--wire", parser=cli_parser(parse_mm), metavar="mm", help=t("coil.opt.wire")),
+    length: Optional[float] = typer.Option(None, "--length", parser=cli_parser(parse_mm), metavar="mm",
+                                           help=t("coil.opt.length")),
+):
+    if (l_target is None) == (turns is None):
+        fail(t("coil.need"))
+    if form_d <= 0 or wire_d <= 0:
+        fail(t("common.positive_all"))
+    mean_d = form_d + wire_d
+    if turns is None:
+        exact = coil_turns(l_target, form_d, wire_d)
+        turns = math.ceil(exact * 2) / 2          # yarım sarıma yuvarla
+    ell = length if length is not None else turns * wire_d
+    ind = wheeler_l(turns, mean_d, ell)
+    rows = {
+        t("coil.turns"): f"{turns:g}",
+        t("coil.inductance"): format_si(ind, "H"),
+        t("coil.length"): f"{ell * 1e3:.2f} mm",
+        t("coil.mean_d"): f"{mean_d * 1e3:.2f} mm",
+        t("coil.wire_len"): f"{math.pi * mean_d * turns * 1e3:.0f} mm",
+    }
+    result_panel(t("coil.title"), rows, data={
+        "turns": turns, "inductance_h": ind, "length_mm": ell * 1e3, "mean_diameter_mm": mean_d * 1e3,
+        "wire_length_mm": math.pi * mean_d * turns * 1e3})
+    if ell < 0.4 * mean_d / 2:
+        warn(t("coil.short"))
+    theory(t("coil.note"))
+
+
+# --- Kristal yük kondansatörü -----------------------------------------------------------------
+
+def crystal(
+    cl: Optional[float] = typer.Option(None, "--cl", **eng(t("xtal.opt.cl"))),
+    cstray: float = typer.Option(5e-12, "--cstray", **eng(t("xtal.opt.cstray"))),
+    c: Optional[float] = typer.Option(None, "--c", **eng(t("xtal.opt.c"))),
+):
+    if (cl is None) == (c is None):
+        fail(t("xtal.need"))
+    if c is None:
+        c = 2 * (cl - cstray)
+        if c <= 0:
+            fail(t("xtal.too_small"))
+        std = nearest_standard(c, "E12")
+        rows = {
+            "C1 = C2": format_si(c, "F"),
+            t("xtal.standard"): f"{format_si(std, 'F')} → CL = {format_si(std / 2 + cstray, 'F')}",
+        }
+        data = {"c_f": c, "standard_f": std, "cl_with_standard_f": std / 2 + cstray, "cstray_f": cstray}
+    else:
+        rows = {"CL": format_si(c / 2 + cstray, "F")}
+        data = {"cl_f": c / 2 + cstray, "c_f": c, "cstray_f": cstray}
+    result_panel(t("xtal.title"), rows, data=data)
+    theory("CL = C1·C2 / (C1 + C2) + Cstray", t("xtal.note"))

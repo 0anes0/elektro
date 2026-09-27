@@ -1025,3 +1025,278 @@ MESSAGES.update({
     "ds.col.size": "Boyut",
     "ds.col.date": "Tarih",
 })
+
+# --- 0.5 ---------------------------------------------------------------------------------
+MESSAGES.update({
+    "menu.opamp": "Op-amp yükselteçler",
+    "menu.coil": "Hava nüveli bobin",
+    "menu.crystal": "Kristal yük kondansatörü",
+    "menu.rectifier": "Doğrultucu + filtre kondansatörü",
+    "menu.acpower": "AC güç, güç faktörü düzeltme",
+    "menu.shell": "Etkileşimli mod",
+    "menu.vars": "Kayıtlı değişkenler",
+    "menu.history": "Hesap geçmişi",
+
+    # op-amp
+    "op.help": "Op-amp yükselteçler: evirmeyen, eviren, fark ve toplayıcı.",
+    "op.noninv.help": (
+        "Evirmeyen yükselteç.  G = 1 + Rf / Rg\n\n"
+        "--gain verilirse standart Rf/Rg çiftleri önerir; --rf ve --rg verilirse kazancı hesaplar.\n\n"
+        "Örnekler:\n"
+        "  elektro opamp noninv --gain 11\n"
+        "  elektro opamp noninv --rf 100k --rg 10k --vin 0.2 --gbw 1M"
+    ),
+    "op.inv.help": (
+        "Eviren yükselteç.  G = −Rf / Rin\n\n"
+        "Örnekler:\n"
+        "  elektro opamp inv --gain 10\n"
+        "  elektro opamp inv --rf 47k --rin 4k7 --vin 0.5 --vcc 12"
+    ),
+    "op.diff.help": (
+        "Fark yükselteci (R1 = R3, R2 = R4).  Vout = (R2/R1) · (V+ − V−)\n\n"
+        "Örnek:\n"
+        "  elektro opamp diff --gain 5"
+    ),
+    "op.sum.help": (
+        "Eviren toplayıcı.  Vout = −Rf · Σ(Vi / Ri)\n\n"
+        "Örnek:\n"
+        "  elektro opamp sum --rf 10k --rin 10k --vin 1 --rin 20k --vin 0.5"
+    ),
+    "op.opt.gain": "Hedef kazanç (V/V)",
+    "op.opt.gain_inv": "Hedef kazancın büyüklüğü (işaret her zaman negatif)",
+    "op.opt.rf": "Geri besleme direnci Rf",
+    "op.opt.rg": "Toprağa giden direnç Rg",
+    "op.opt.rin": "Giriş direnci Rin",
+    "op.opt.vin": "Giriş gerilimi (çıkışı hesaplar)",
+    "op.opt.vcc": "Besleme gerilimi (çıkış kırpılıyorsa uyarır)",
+    "op.opt.gbw": "Op-amp'ın kazanç-bant genişliği çarpımı (Hz), örn: 1M",
+    "op.need": "--gain ya da iki direncin ikisini de ver",
+    "op.noninv.min": "evirmeyen yükseltecin kazancı 1'den küçük olamaz",
+    "op.follower": "gerilim izleyici: çıkışı doğrudan − girişe bağla",
+    "op.pairs": "Standart direnç çiftleri",
+    "op.gain": "Kazanç",
+    "op.col.error": "Hata",
+    "op.bandwidth": "Bant genişliği (−3 dB)",
+    "op.zin": "Giriş empedansı",
+    "op.note": "Not",
+    "op.clip": "Çıkış {vout} beslemeyi ({vcc}) aşıyor; kırpılacak.",
+    "op.noninv.title": "Evirmeyen Yükselteç",
+    "op.inv.title": "Eviren Yükselteç",
+    "op.sum.title": "Toplayıcı Yükselteç",
+    "op.noninv.note": "Düşük ofset için Rf ∥ Rg ≈ kaynak direnci olsun; 1k-100k değerleri tipiktir.",
+    "op.inv.note": "Giriş empedansı Rin'e eşittir; kaynağa göre yeterince büyük seç.",
+    "op.diff.note": "Ortak mod bastırmayı direnç eşleşmesi belirler; mümkünse %0.1 direnç kullan.",
+    "op.sum.opt.rin": "Giriş direnci (her giriş için bir kez yaz)",
+    "op.sum.opt.vin": "Giriş gerilimi (her giriş için bir kez, aynı sırayla)",
+    "op.sum.mismatch": "--rin ve --vin sayısı aynı olmalı",
+
+    # sadeleştirme
+    "dig.simp.help": (
+        "Boolean fonksiyonu en sade çarpımlar toplamına indirir (Quine-McCluskey).\n\n"
+        "2-4 değişkende Karnaugh haritasını da gösterir.\n\n"
+        "Örnekler:\n"
+        "  elektro logic simplify \"A&B | A&~B\"\n"
+        "  elektro logic simplify -m 0,1,2,5,6,7 -v A,B,C\n"
+        "  elektro logic simplify -m 1,3,7,11,15 -d 0,2,5"
+    ),
+    "dig.simp.arg": "Boolean ifade (ya da --minterms kullan)",
+    "dig.simp.opt.minterms": "Minterm listesi, örn: 0,2,5,7",
+    "dig.simp.opt.dontcare": "Önemsiz (don't care) terimler, örn: 1,3",
+    "dig.simp.opt.vars": "Değişken adları, örn: A,B,C,D (en anlamlı bit önce)",
+    "dig.simp.need": "bir ifade ya da --minterms ver",
+    "dig.simp.bad_list": "liste virgülle ayrılmış tam sayılardan oluşmalı",
+    "dig.simp.few_vars": "bu mintermler için en az {n} değişken gerekli",
+    "dig.simp.too_many": "en fazla 8 değişken destekleniyor",
+    "dig.simp.title": "Sadeleştirilmiş",
+    "dig.simp.minterms": "Fonksiyon",
+    "dig.simp.result": "En sade SOP",
+    "dig.simp.code": "İfade olarak",
+    "dig.simp.cost": "Maliyet",
+    "dig.simp.cost_val": "{terms} terim, {lits} literal",
+
+    # doğrultucu
+    "rect.help": (
+        "Trafo + doğrultucu + filtre kondansatörü.\n\n"
+        "ΔV = I / (k · f · C)   (k = 2 tam dalga, 1 yarım dalga)\n\n"
+        "Örnekler:\n"
+        "  elektro rectifier --vac 12 -i 1 --ripple 1\n"
+        "  elektro rectifier --vac 9 -i 500m --c 2200u --vmains 230\n"
+        "  elektro rectifier --vac 15 --type half -i 100m --ripple 0.5"
+    ),
+    "rect.opt.vac": "Sekonder gerilimi (V RMS)",
+    "rect.opt.type": "Doğrultucu: bridge (köprü), center (orta uçlu), half (yarım dalga)",
+    "rect.opt.freq": "Şebeke frekansı (Hz)",
+    "rect.opt.iload": "Yük akımı (A)",
+    "rect.opt.ripple": "İzin verilen dalgalanma (V tepe-tepe) — C'yi hesaplar",
+    "rect.opt.c": "Filtre kondansatörü — dalgalanmayı hesaplar",
+    "rect.opt.vdiode": "Diyot başına ileri gerilim (V)",
+    "rect.opt.vmains": "Primer gerilimi (V RMS) — sarım oranını hesaplar",
+    "rect.bad_type": "doğrultucu tipi şunlardan biri olmalı: {options}",
+    "rect.too_low": "sekonder gerilimi diyot düşümlerinden küçük",
+    "rect.title": "Doğrultucu",
+    "rect.type": "Tip",
+    "rect.kind.bridge": "tam dalga köprü",
+    "rect.kind.center": "tam dalga orta uçlu",
+    "rect.kind.half": "yarım dalga",
+    "rect.vpeak": "Tepe DC (yüksüz)",
+    "rect.piv": "Diyot ters gerilimi (PIV)",
+    "rect.ripple_freq": "Dalgalanma frekansı",
+    "rect.c": "Kondansatör",
+    "rect.ripple": "Dalgalanma (t-t)",
+    "rect.cap_voltage": "Kondansatör gerilim değeri",
+    "rect.ratio": "Sarım oranı",
+    "rect.diode_i": "Diyot başına akım",
+    "rect.hint": "Filtre kondansatörü için -i ve --ripple (ya da --c) ekle.",
+    "rect.note": "Kondansatörün dalgalanma akımı yüksektir; buna uygun, düşük ESR'li bir tip seç.",
+
+    # AC güç
+    "ac.help": (
+        "Tek ya da üç fazlı AC güç ve güç faktörü düzeltme.\n\n"
+        "P = V·I·cosφ (tek faz)   P = √3·V·I·cosφ (3 faz, V fazlar arası)\n\n"
+        "Örnekler:\n"
+        "  elektro acpower --v 230 --i 10 --pf 0.8\n"
+        "  elektro acpower --v 400 --p 15k --pf 0.82 --phases 3\n"
+        "  elektro acpower --i 10 --pf 0.75 --target-pf 0.95"
+    ),
+    "ac.opt.v": "Gerilim (V RMS; 3 fazda fazlar arası)",
+    "ac.opt.i": "Akım (A RMS)",
+    "ac.opt.p": "Aktif güç (W) — akımı hesaplar",
+    "ac.opt.pf": "Güç faktörü cosφ",
+    "ac.opt.phases": "Faz sayısı: 1 ya da 3",
+    "ac.opt.target": "Hedef güç faktörü — kompanzasyon kondansatörünü hesaplar",
+    "ac.bad_phases": "faz sayısı 1 ya da 3 olmalı",
+    "ac.bad_pf": "gerilim pozitif ve 0 < cosφ ≤ 1 olmalı",
+    "ac.bad_target": "hedef güç faktörü mevcut değerden büyük ve en fazla 1 olmalı",
+    "ac.need": "--i ya da --p ver",
+    "ac.title": "AC Güç",
+    "ac.system": "Sistem",
+    "ac.single": "tek faz",
+    "ac.three": "üç faz",
+    "ac.current": "Akım",
+    "ac.p": "Aktif güç P",
+    "ac.q": "Reaktif güç Q",
+    "ac.s": "Görünür güç S",
+    "ac.qc": "Kompanzasyon Qc",
+    "ac.cap": "Kompanzasyon kondansatörü",
+    "ac.cap_delta": "Faz başına kondansatör (Δ)",
+    "ac.new_current": "Kompanzasyon sonrası akım",
+    "ac.three_note": "Yıldız bağlı kondansatör grubu için kapasitansı 3 ile çarp.",
+
+    # yıldız-üçgen
+    "sd.help": (
+        "Üç direnç/empedans için yıldız (Y) ↔ üçgen (Δ) dönüşümü.\n\n"
+        "Örnekler:\n"
+        "  elektro stardelta delta 10 20 30     (Rab Rbc Rca → Ra Rb Rc)\n"
+        "  elektro stardelta star 5 10 15       (Ra Rb Rc → Rab Rbc Rca)"
+    ),
+    "sd.arg.mode": "Verdiğin bağlantı: delta ya da star",
+    "sd.arg.values": "Üç değer: Rab Rbc Rca (delta) ya da Ra Rb Rc (star)",
+    "sd.bad": "kullanım: stardelta delta|star R1 R2 R3",
+    "sd.note": "Ra, A düğümündeki direnç; Rab, A ile B arasındaki direnç.",
+
+    # bobin
+    "coil.help": (
+        "Tek katlı hava nüveli bobin (Wheeler formülü).\n\n"
+        "Örnekler:\n"
+        "  elektro coil --l 1u --d 10               (10 mm gövdede 1 µH için sarım)\n"
+        "  elektro coil --l 330n --d 6 --wire 0.8\n"
+        "  elektro coil --n 12 --d 8 --length 15"
+    ),
+    "coil.opt.l": "Hedef endüktans (H), örn: 1u",
+    "coil.opt.n": "Sarım sayısı — L'yi hesaplar",
+    "coil.opt.d": "Bobin gövdesi çapı (mm)",
+    "coil.opt.wire": "Tel çapı (mm)",
+    "coil.opt.length": "Sargı uzunluğu (mm); varsayılan: sık sarım",
+    "coil.need": "--l ya da --n'den birini ver",
+    "coil.title": "Hava Nüveli Bobin",
+    "coil.turns": "Sarım",
+    "coil.inductance": "Endüktans",
+    "coil.length": "Sargı uzunluğu",
+    "coil.mean_d": "Ortalama çap",
+    "coil.wire_len": "Tel uzunluğu",
+    "coil.short": "Bobin çapına göre çok kısa; formül daha az isabetli.",
+    "coil.note": "Wheeler formülü uzunluk > 0.8 × yarıçap için ~%1 isabetlidir. Bacaklar için fazladan tel bırak.",
+
+    # kristal
+    "xtal.help": (
+        "Kristal osilatör (Pierce) için yük kondansatörleri.\n\n"
+        "C1 = C2 = 2 · (CL − Cparazit)\n\n"
+        "Örnekler:\n"
+        "  elektro crystal --cl 12p\n"
+        "  elektro crystal --cl 18p --cstray 3p\n"
+        "  elektro crystal --c 22p                  (22 pF hangi CL'yi verir?)"
+    ),
+    "xtal.opt.cl": "Kristal datasheet'indeki yük kapasitansı (F)",
+    "xtal.opt.cstray": "Bacak ve yolların parazitik kapasitansı (F), tipik 2-5p",
+    "xtal.opt.c": "Mevcut kondansatör değeri — CL'yi hesaplar",
+    "xtal.need": "--cl ya da --c'den birini ver",
+    "xtal.too_small": "CL parazitik kapasitanstan küçük; kondansatör gerekmez (ya da Cstray'i kontrol et)",
+    "xtal.title": "Kristal Yük Kondansatörleri",
+    "xtal.standard": "Standart (E12)",
+    "xtal.note": "Fazla kapasitans frekansı düşürür ve osilatörü durdurabilir.",
+
+    # grafik
+    "plot.opt": "Grafik kaydet: .svg (dahili), .png / .pdf (matplotlib gerekir)",
+    "plot.saved": "Grafik kaydedildi: {path}",
+    "plot.bad_suffix": "grafik dosyası .svg, .png ya da .pdf ile bitmeli",
+    "plot.need_mpl": "PNG/PDF için matplotlib gerekli: {pip}   (ya da .svg kullan)",
+    "plot.freq": "Frekans",
+    "plot.time": "Zaman",
+    "plot.voltage": "Gerilim (V)",
+    "plot.current": "Akım (A)",
+    "plot.metavar": "DOSYA",
+
+    "calc.var_not_number": "'{name}' değişkeni bir sayı değil",
+
+    # değişkenler
+    "vars.help": (
+        "Kayıtlı değişkenleri listele.\n\n"
+        "Değişkenler her komutta @isim olarak kullanılır:\n"
+        "  elektro set vin 12\n"
+        "  elektro ohm -v @vin -r 1k\n"
+        "  elektro calc \"vin / 2\"\n\n"
+        "--local ile ./.elektro.json'a (projeye özel; üst klasörlerde de aranır) kaydedilir."
+    ),
+    "vars.set.help": "Değişken kaydet: elektro set İSİM DEĞER (@İSİM olarak kullan).",
+    "vars.unset.help": "Değişkeni sil.",
+    "vars.arg.name": "Değişken adı (harf, rakam, _)",
+    "vars.arg.value": "Değer, örn: 12, 4k7, 100n",
+    "vars.opt.local": "Bu proje için ./.elektro.json'a kaydet",
+    "vars.bad_name": "geçersiz değişken adı '{name}'",
+    "vars.unknown": "bilinmeyen değişken @{name} (bkz: elektro vars)",
+    "vars.removed": "silindi",
+    "vars.empty": "Henüz değişken yok. Örnek: elektro set vin 12",
+    "vars.col.name": "Ad",
+    "vars.col.value": "Değer",
+    "vars.col.scope": "Kapsam",
+    "vars.global": "genel",
+    "vars.local": "proje",
+    "vars.overridden": "üzerine yazıldı",
+
+    # geçmiş
+    "hist.help": (
+        "Hesap geçmişi.\n\n"
+        "Örnekler:\n"
+        "  elektro history\n"
+        "  elektro history -s filter\n"
+        "  elektro history --run 12\n"
+        "  elektro history --clear"
+    ),
+    "hist.opt.n": "Gösterilecek kayıt sayısı",
+    "hist.opt.search": "Sadece bu metni içeren kayıtlar",
+    "hist.opt.run": "Bu numaralı kaydı tekrar çalıştır",
+    "hist.opt.clear": "Tüm geçmişi sil",
+    "hist.bad_id": "bu numarada kayıt yok (1 … {max})",
+    "hist.cleared": "Geçmiş silindi.",
+    "hist.empty": "Geçmiş boş.",
+    "hist.col.command": "Komut",
+    "hist.rerun": "Tekrar çalıştır: elektro history --run NUMARA",
+
+    # kabuk
+    "shell.help": (
+        "Etkileşimli mod: komutları 'elektro' yazmadan gir.\n\n"
+        "Tab komutları tamamlar, ↑/↓ önceki satırlarda gezer.\n"
+        "Yerleşik: help, clear, exit"
+    ),
+    "shell.welcome": "etkileşimli mod. Komutlar için 'help', çıkmak için 'exit' yaz.",
+})

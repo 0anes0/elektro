@@ -1025,3 +1025,278 @@ MESSAGES.update({
     "ds.col.size": "Größe",
     "ds.col.date": "Datum",
 })
+
+# --- 0.5 ---------------------------------------------------------------------------------
+MESSAGES.update({
+    "menu.opamp": "OPV-Verstärker",
+    "menu.coil": "Luftspule",
+    "menu.crystal": "Quarz-Lastkondensatoren",
+    "menu.rectifier": "Gleichrichter + Siebkondensator",
+    "menu.acpower": "Wechselstromleistung, Blindstromkompensation",
+    "menu.shell": "Interaktiver Modus",
+    "menu.vars": "Gespeicherte Variablen",
+    "menu.history": "Rechenverlauf",
+
+    # OPV
+    "op.help": "Operationsverstärker: nichtinvertierend, invertierend, Differenz, Summierer.",
+    "op.noninv.help": (
+        "Nichtinvertierender Verstärker.  G = 1 + Rf / Rg\n\n"
+        "Mit --gain werden Normwert-Paare Rf/Rg vorgeschlagen; mit --rf und --rg wird die Verstärkung berechnet.\n\n"
+        "Beispiele:\n"
+        "  elektro opamp noninv --gain 11\n"
+        "  elektro opamp noninv --rf 100k --rg 10k --vin 0.2 --gbw 1M"
+    ),
+    "op.inv.help": (
+        "Invertierender Verstärker.  G = −Rf / Rin\n\n"
+        "Beispiele:\n"
+        "  elektro opamp inv --gain 10\n"
+        "  elektro opamp inv --rf 47k --rin 4k7 --vin 0.5 --vcc 12"
+    ),
+    "op.diff.help": (
+        "Differenzverstärker (R1 = R3, R2 = R4).  Vout = (R2/R1) · (V+ − V−)\n\n"
+        "Beispiel:\n"
+        "  elektro opamp diff --gain 5"
+    ),
+    "op.sum.help": (
+        "Invertierender Summierer.  Vout = −Rf · Σ(Vi / Ri)\n\n"
+        "Beispiel:\n"
+        "  elektro opamp sum --rf 10k --rin 10k --vin 1 --rin 20k --vin 0.5"
+    ),
+    "op.opt.gain": "Gewünschte Verstärkung (V/V)",
+    "op.opt.gain_inv": "Betrag der gewünschten Verstärkung (Vorzeichen immer negativ)",
+    "op.opt.rf": "Rückkopplungswiderstand Rf",
+    "op.opt.rg": "Widerstand gegen Masse Rg",
+    "op.opt.rin": "Eingangswiderstand Rin",
+    "op.opt.vin": "Eingangsspannung (berechnet den Ausgang)",
+    "op.opt.vcc": "Versorgungsspannung (warnt bei Übersteuerung)",
+    "op.opt.gbw": "Verstärkungs-Bandbreite-Produkt des OPV (Hz), z. B. 1M",
+    "op.need": "--gain oder beide Widerstände angeben",
+    "op.noninv.min": "ein nichtinvertierender Verstärker kann keine Verstärkung unter 1 haben",
+    "op.follower": "Spannungsfolger: Ausgang direkt mit dem −-Eingang verbinden",
+    "op.pairs": "Normwert-Widerstandspaare",
+    "op.gain": "Verstärkung",
+    "op.col.error": "Fehler",
+    "op.bandwidth": "Bandbreite (−3 dB)",
+    "op.zin": "Eingangsimpedanz",
+    "op.note": "Hinweis",
+    "op.clip": "Ausgang {vout} überschreitet die Versorgung ({vcc}); er wird begrenzt.",
+    "op.noninv.title": "Nichtinvertierender Verstärker",
+    "op.inv.title": "Invertierender Verstärker",
+    "op.sum.title": "Summierverstärker",
+    "op.noninv.note": "Für geringen Offset Rf ∥ Rg ≈ Quellwiderstand wählen; 1k-100k sind üblich.",
+    "op.inv.note": "Die Eingangsimpedanz entspricht Rin; Rin passend zur Quelle groß genug wählen.",
+    "op.diff.note": "Die Gleichtaktunterdrückung hängt von der Widerstandspaarung ab; möglichst 0,1-%-Widerstände verwenden.",
+    "op.sum.opt.rin": "Eingangswiderstand (für jeden Eingang einmal angeben)",
+    "op.sum.opt.vin": "Eingangsspannung (für jeden Eingang einmal, gleiche Reihenfolge)",
+    "op.sum.mismatch": "gleich viele --rin und --vin angeben",
+
+    # Vereinfachung
+    "dig.simp.help": (
+        "Boolesche Funktion zu einer minimalen disjunktiven Normalform vereinfachen (Quine-McCluskey).\n\n"
+        "Zeigt für 2-4 Variablen das KV-Diagramm.\n\n"
+        "Beispiele:\n"
+        "  elektro logic simplify \"A&B | A&~B\"\n"
+        "  elektro logic simplify -m 0,1,2,5,6,7 -v A,B,C\n"
+        "  elektro logic simplify -m 1,3,7,11,15 -d 0,2,5"
+    ),
+    "dig.simp.arg": "Boolescher Ausdruck (oder --minterms verwenden)",
+    "dig.simp.opt.minterms": "Minterm-Liste, z. B. 0,2,5,7",
+    "dig.simp.opt.dontcare": "Don't-Care-Terme, z. B. 1,3",
+    "dig.simp.opt.vars": "Variablennamen, z. B. A,B,C,D (MSB zuerst)",
+    "dig.simp.need": "einen Ausdruck oder --minterms angeben",
+    "dig.simp.bad_list": "die Liste muss durch Kommas getrennte ganze Zahlen enthalten",
+    "dig.simp.few_vars": "für diese Minterme sind mindestens {n} Variablen nötig",
+    "dig.simp.too_many": "höchstens 8 Variablen werden unterstützt",
+    "dig.simp.title": "Vereinfacht",
+    "dig.simp.minterms": "Funktion",
+    "dig.simp.result": "Minimale DNF",
+    "dig.simp.code": "Als Ausdruck",
+    "dig.simp.cost": "Aufwand",
+    "dig.simp.cost_val": "Terme: {terms}, Literale: {lits}",
+
+    # Gleichrichter
+    "rect.help": (
+        "Transformator + Gleichrichter + Siebkondensator.\n\n"
+        "ΔV = I / (k · f · C)   (k = 2 Vollweg, 1 Einweg)\n\n"
+        "Beispiele:\n"
+        "  elektro rectifier --vac 12 -i 1 --ripple 1\n"
+        "  elektro rectifier --vac 9 -i 500m --c 2200u --vmains 230\n"
+        "  elektro rectifier --vac 15 --type half -i 100m --ripple 0.5"
+    ),
+    "rect.opt.vac": "Sekundärspannung (V eff.)",
+    "rect.opt.type": "Gleichrichter: bridge (Brücke), center (Mittelpunkt), half (Einweg)",
+    "rect.opt.freq": "Netzfrequenz (Hz)",
+    "rect.opt.iload": "Laststrom (A)",
+    "rect.opt.ripple": "Zulässige Brummspannung (V Spitze-Spitze) — berechnet C",
+    "rect.opt.c": "Siebkondensator — berechnet die Brummspannung",
+    "rect.opt.vdiode": "Flussspannung pro Diode (V)",
+    "rect.opt.vmains": "Primärspannung (V eff.) — berechnet das Windungsverhältnis",
+    "rect.bad_type": "der Gleichrichtertyp muss einer von diesen sein: {options}",
+    "rect.too_low": "die Sekundärspannung ist kleiner als die Diodenspannungen",
+    "rect.title": "Gleichrichter",
+    "rect.type": "Typ",
+    "rect.kind.bridge": "Vollweg-Brücke",
+    "rect.kind.center": "Vollweg-Mittelpunkt",
+    "rect.kind.half": "Einweg",
+    "rect.vpeak": "Spitzen-DC (ohne Last)",
+    "rect.piv": "Dioden-Sperrspannung (PIV)",
+    "rect.ripple_freq": "Brummfrequenz",
+    "rect.c": "Kondensator",
+    "rect.ripple": "Brummspannung (SS)",
+    "rect.cap_voltage": "Spannungsfestigkeit des Kondensators",
+    "rect.ratio": "Windungsverhältnis",
+    "rect.diode_i": "Strom pro Diode",
+    "rect.hint": "Für den Siebkondensator -i und --ripple (oder --c) angeben.",
+    "rect.note": "Der Rippelstrom des Kondensators ist hoch; einen dafür ausgelegten Low-ESR-Typ wählen.",
+
+    # Wechselstromleistung
+    "ac.help": (
+        "Ein- oder dreiphasige Wechselstromleistung und Blindstromkompensation.\n\n"
+        "P = V·I·cosφ (1-phasig)   P = √3·V·I·cosφ (3-phasig, V Außenleiterspannung)\n\n"
+        "Beispiele:\n"
+        "  elektro acpower --v 230 --i 10 --pf 0.8\n"
+        "  elektro acpower --v 400 --p 15k --pf 0.82 --phases 3\n"
+        "  elektro acpower --i 10 --pf 0.75 --target-pf 0.95"
+    ),
+    "ac.opt.v": "Spannung (V eff.; bei 3 Phasen Außenleiterspannung)",
+    "ac.opt.i": "Strom (A eff.)",
+    "ac.opt.p": "Wirkleistung (W) — berechnet den Strom",
+    "ac.opt.pf": "Leistungsfaktor cosφ",
+    "ac.opt.phases": "Anzahl der Phasen: 1 oder 3",
+    "ac.opt.target": "Ziel-Leistungsfaktor — berechnet den Kompensationskondensator",
+    "ac.bad_phases": "die Phasenzahl muss 1 oder 3 sein",
+    "ac.bad_pf": "die Spannung muss positiv sein und 0 < cosφ ≤ 1",
+    "ac.bad_target": "der Ziel-Leistungsfaktor muss über dem aktuellen liegen und höchstens 1 sein",
+    "ac.need": "--i oder --p angeben",
+    "ac.title": "Wechselstromleistung",
+    "ac.system": "System",
+    "ac.single": "einphasig",
+    "ac.three": "dreiphasig",
+    "ac.current": "Strom",
+    "ac.p": "Wirkleistung P",
+    "ac.q": "Blindleistung Q",
+    "ac.s": "Scheinleistung S",
+    "ac.qc": "Kompensation Qc",
+    "ac.cap": "Kompensationskondensator",
+    "ac.cap_delta": "Kondensator pro Phase (Δ)",
+    "ac.new_current": "Strom nach Kompensation",
+    "ac.three_note": "Für eine Kondensatorbank in Sternschaltung die Kapazität mit 3 multiplizieren.",
+
+    # Stern-Dreieck
+    "sd.help": (
+        "Stern (Y) ↔ Dreieck (Δ) Umrechnung von drei Widerständen/Impedanzen.\n\n"
+        "Beispiele:\n"
+        "  elektro stardelta delta 10 20 30     (Rab Rbc Rca → Ra Rb Rc)\n"
+        "  elektro stardelta star 5 10 15       (Ra Rb Rc → Rab Rbc Rca)"
+    ),
+    "sd.arg.mode": "Gegebene Schaltung: delta oder star",
+    "sd.arg.values": "Drei Werte: Rab Rbc Rca (delta) oder Ra Rb Rc (star)",
+    "sd.bad": "Aufruf: stardelta delta|star R1 R2 R3",
+    "sd.note": "Ra ist der Widerstand am Knoten A, Rab der zwischen A und B.",
+
+    # Spule
+    "coil.help": (
+        "Einlagige Luftspule (Wheeler-Formel).\n\n"
+        "Beispiele:\n"
+        "  elektro coil --l 1u --d 10               (Windungen für 1 µH auf 10-mm-Körper)\n"
+        "  elektro coil --l 330n --d 6 --wire 0.8\n"
+        "  elektro coil --n 12 --d 8 --length 15"
+    ),
+    "coil.opt.l": "Gewünschte Induktivität (H), z. B. 1u",
+    "coil.opt.n": "Windungszahl — berechnet L",
+    "coil.opt.d": "Durchmesser des Spulenkörpers (mm)",
+    "coil.opt.wire": "Drahtdurchmesser (mm)",
+    "coil.opt.length": "Wickellänge (mm); Standard: dicht gewickelt",
+    "coil.need": "entweder --l oder --n angeben",
+    "coil.title": "Luftspule",
+    "coil.turns": "Windungen",
+    "coil.inductance": "Induktivität",
+    "coil.length": "Wickellänge",
+    "coil.mean_d": "Mittlerer Durchmesser",
+    "coil.wire_len": "Drahtlänge",
+    "coil.short": "Die Spule ist im Verhältnis zum Durchmesser sehr kurz; die Formel ist ungenauer.",
+    "coil.note": "Die Wheeler-Formel ist für Länge > 0,8 × Radius auf ~1 % genau. Draht für die Anschlüsse zugeben.",
+
+    # Quarz
+    "xtal.help": (
+        "Lastkondensatoren für einen Quarzoszillator (Pierce).\n\n"
+        "C1 = C2 = 2 · (CL − Cstreu)\n\n"
+        "Beispiele:\n"
+        "  elektro crystal --cl 12p\n"
+        "  elektro crystal --cl 18p --cstray 3p\n"
+        "  elektro crystal --c 22p                  (welches CL ergeben 22 pF?)"
+    ),
+    "xtal.opt.cl": "Lastkapazität laut Quarz-Datenblatt (F)",
+    "xtal.opt.cstray": "Streukapazität von Pins und Leiterbahnen (F), typ. 2-5p",
+    "xtal.opt.c": "Vorhandener Kondensatorwert — berechnet CL",
+    "xtal.need": "entweder --cl oder --c angeben",
+    "xtal.too_small": "CL ist kleiner als die Streukapazität; keine Kondensatoren nötig (oder Cstray prüfen)",
+    "xtal.title": "Quarz-Lastkondensatoren",
+    "xtal.standard": "Normwert (E12)",
+    "xtal.note": "Zu viel Kapazität senkt die Frequenz und kann den Oszillator stoppen.",
+
+    # Grafik
+    "plot.opt": "Grafik speichern: .svg (eingebaut), .png / .pdf (benötigt matplotlib)",
+    "plot.saved": "Grafik gespeichert: {path}",
+    "plot.bad_suffix": "die Grafikdatei muss auf .svg, .png oder .pdf enden",
+    "plot.need_mpl": "PNG/PDF benötigt matplotlib: {pip}   (oder .svg verwenden)",
+    "plot.freq": "Frequenz",
+    "plot.time": "Zeit",
+    "plot.voltage": "Spannung (V)",
+    "plot.current": "Strom (A)",
+    "plot.metavar": "DATEI",
+
+    "calc.var_not_number": "die Variable '{name}' ist keine Zahl",
+
+    # Variablen
+    "vars.help": (
+        "Gespeicherte Variablen auflisten.\n\n"
+        "Variablen werden in jedem Befehl als @name verwendet:\n"
+        "  elektro set vin 12\n"
+        "  elektro ohm -v @vin -r 1k\n"
+        "  elektro calc \"vin / 2\"\n\n"
+        "Mit --local werden sie in ./.elektro.json gespeichert (pro Projekt, auch in übergeordneten Ordnern gesucht)."
+    ),
+    "vars.set.help": "Variable speichern: elektro set NAME WERT (als @NAME verwenden).",
+    "vars.unset.help": "Variable löschen.",
+    "vars.arg.name": "Variablenname (Buchstaben, Ziffern, _)",
+    "vars.arg.value": "Wert, z. B. 12, 4k7, 100n",
+    "vars.opt.local": "In ./.elektro.json für dieses Projekt speichern",
+    "vars.bad_name": "ungültiger Variablenname '{name}'",
+    "vars.unknown": "unbekannte Variable @{name} (siehe: elektro vars)",
+    "vars.removed": "gelöscht",
+    "vars.empty": "Noch keine Variablen. Beispiel: elektro set vin 12",
+    "vars.col.name": "Name",
+    "vars.col.value": "Wert",
+    "vars.col.scope": "Geltung",
+    "vars.global": "global",
+    "vars.local": "Projekt",
+    "vars.overridden": "überschrieben",
+
+    # Verlauf
+    "hist.help": (
+        "Rechenverlauf.\n\n"
+        "Beispiele:\n"
+        "  elektro history\n"
+        "  elektro history -s filter\n"
+        "  elektro history --run 12\n"
+        "  elektro history --clear"
+    ),
+    "hist.opt.n": "Anzahl der angezeigten Einträge",
+    "hist.opt.search": "Nur Einträge mit diesem Text",
+    "hist.opt.run": "Eintrag mit dieser Nummer erneut ausführen",
+    "hist.opt.clear": "Gesamten Verlauf löschen",
+    "hist.bad_id": "kein Eintrag mit dieser Nummer (1 … {max})",
+    "hist.cleared": "Verlauf gelöscht.",
+    "hist.empty": "Der Verlauf ist leer.",
+    "hist.col.command": "Befehl",
+    "hist.rerun": "Erneut ausführen: elektro history --run NUMMER",
+
+    # Shell
+    "shell.help": (
+        "Interaktiver Modus: Befehle ohne 'elektro' eingeben.\n\n"
+        "Tab vervollständigt Befehle, ↑/↓ blättert durch frühere Eingaben.\n"
+        "Eingebaut: help, clear, exit"
+    ),
+    "shell.welcome": "interaktiver Modus. 'help' zeigt die Befehle, 'exit' beendet.",
+})

@@ -67,6 +67,19 @@ ELEKTRO_LANG=ru elektro      # ortam değişkeniyle
 
 Her komut `--json` ile makine okunur çıktı verir: `elektro ohm -v 12 -r 1k --json`
 
+### Etkileşimli mod, değişkenler, geçmiş
+
+```bash
+elektro shell                        # "elektro" yazmadan komut gir; Tab tamamlar, ↑ geri getirir
+elektro set vin 12                   # bir değeri kaydet …
+elektro ohm -v @vin -r 1k            # … her komutta @vin olarak kullan
+elektro set rload 4k7 --local        # projeye özel (./.elektro.json)
+elektro calc "vin / 2"               # calc'ta değişkenler adıyla da kullanılır
+elektro vars                         # değişkenleri listele
+elektro history                      # önceki hesaplar
+elektro history --run 3              # birini tekrar çalıştır
+```
+
 ### Temel
 
 ```bash
@@ -87,6 +100,12 @@ elektro logic convert 0xFF           # onlu/onaltılı/ikili/sekizli
 elektro logic convert --bits 8 -- -5 # ikiye tümleyen
 elektro logic truth xor
 elektro logic expr "A & B | ~C"      # boolean ifade doğruluk tablosu
+elektro logic simplify "A&B | A&~B"  # en sade SOP + Karnaugh haritası
+elektro logic simplify -m 1,3,7,11,15 -d 0,2,5
+
+elektro opamp noninv --gain 11       # standart Rf/Rg çiftleri
+elektro opamp inv --rf 47k --rin 4k7 --vin 0.5 --gbw 1M
+elektro opamp diff --gain 5
 
 elektro switch bjt --ic 500m -v 3.3  # NPN anahtar için taban direnci
 elektro switch mosfet -v 10 --qg 40n -f 100k   # kapı sürme ve kayıplar
@@ -107,6 +126,8 @@ elektro divider --vin 5 --vout 3.3           # en iyi E24 R1/R2 çiftleri
 elektro led --vs 12 --vf 3.1 -i 15m -n 3     # LED ön direnci + güç sınıfı
 elektro eseries 4k8                          # en yakın standart değerler (E3-E192)
 elektro cap 104                              # kondansatör kodu ↔ değer
+elektro coil --l 1u --d 10                   # hava nüveli bobin sarım sayısı (Wheeler)
+elektro crystal --cl 12p                     # kristal yük kondansatörleri
 ```
 
 ### Güç ve iletkenler
@@ -119,6 +140,9 @@ elektro battery 1200 --active 45m --active-time 2 --sleep 20u --sleep-time 58
 elektro thermal -p 5 --rth-jc 3 --ta 50      # gereken soğutucu
 elektro wire --awg 22 -l 3 -i 2              # AWG ↔ mm², gerilim düşümü
 elektro trace -i 3                           # PCB yol genişliği (IPC-2221)
+elektro rectifier --vac 12 -i 1 --ripple 1   # köprü doğrultucu + filtre kondansatörü
+elektro acpower --v 400 --p 15k --pf 0.82 --phases 3 --target-pf 0.95
+elektro stardelta delta 10 20 30             # Δ → Y dönüşümü
 ```
 
 ### Filtreler
@@ -131,7 +155,12 @@ elektro filter rl --r 1k --l 10m
 elektro filter lc --f 433.92M --c 10p
 elektro filter rlc --r 10 --l 1m --c 100n
 elektro filter notch --r 1k --l 1.013 --c 10u  # 50 Hz
+elektro filter rc --r 1k --c 100n --plot bode.svg   # Bode grafiği kaydet
+elektro charge --r 10k --c 100u --v 5 --plot charge.svg
 ```
+
+Grafikler ek bir kütüphane gerektirmeden SVG olarak yazılır. `.png` / `.pdf` için matplotlib'i
+elektro'nun ortamına kur: `~/.local/share/elektro/venv/bin/pip install matplotlib`.
 
 ### RF
 

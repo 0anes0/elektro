@@ -12,7 +12,7 @@ from rich.table import Table
 from rich.text import Text
 
 from elektro.i18n import get_language, pct, t, upper
-from elektro.ui import console, default_group, fail, json_mode, print_json, result_panel
+from elektro.ui import cli_parser, console, default_group, fail, json_mode, print_json, result_panel
 from elektro.units import E_SERIES_BASE, format_si, nearest_standard, parse_value
 
 app = typer.Typer(
@@ -210,7 +210,7 @@ def decode(bands: List[str] = typer.Argument(..., help=t("res.decode.arg"))):
 
 @app.command(help=t("res.encode.help"))
 def encode(
-    value: float = typer.Argument(..., parser=parse_value, metavar=t("ui.metavar.value"),
+    value: float = typer.Argument(..., parser=cli_parser(parse_value), metavar=t("ui.metavar.value"),
                                   help=t("res.encode.arg")),
     bands: int = typer.Option(4, "--bands", "-b", help=t("res.encode.opt.bands")),
     tolerance: Optional[float] = typer.Option(None, "--tol", "-t", help=t("res.encode.opt.tol")),

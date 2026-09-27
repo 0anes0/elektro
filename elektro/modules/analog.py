@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import Optional
 
 import typer
 from rich.table import Table
 
 from elektro.i18n import pct, t
-from elektro.ui import console, eng, fail, json_mode, result_panel, theory, warn
+from elektro.plot import PlotError, curve, plot_path
+from elektro.ui import (
+    cli_parser, console, eng, err_console, fail, json_mode, result_panel, theory, warn,
+)
 from elektro.units import format_si, series_neighbors
 
 switch_app = typer.Typer(help=t("sw.help"), no_args_is_help=True)
@@ -108,6 +112,8 @@ def charge(
     v0: float = typer.Option(0, "--v0", **eng(t("chg.opt.v0"))),
     to: Optional[float] = typer.Option(None, "--to", **eng(t("chg.opt.to"))),
     at: Optional[float] = typer.Option(None, "--t", **eng(t("chg.opt.t"))),
+    plot: Optional[Path] = typer.Option(None, "--plot", parser=cli_parser(plot_path), metavar=t("plot.metavar"),
+                                        help=t("plot.opt")),
 ):
     if (c is None) == (l is None):
         fail(t("chg.need"))
@@ -140,6 +146,15 @@ def charge(
         data["time_to_target_s"] = time
     result_panel(t("chg.title_rl" if inductive else "chg.title_rc"), rows, data=data)
 
+    if plot is not None:
+        times = [5 * tau * i / 400 for i in range(401)]
+        try:
+            out = curve(plot, t("chg.title_rl" if inductive else "chg.title_rc"), times,
+                        [value_at(x) for x in times], t("plot.time"), "s",
+                        t("plot.current" if inductive else "plot.voltage"))
+        except (PlotError, OSError) as e:
+            fail(str(e))
+        (err_console if json_mode() else console).print(f"[green]✓[/] {t('plot.saved', path=out)}")
     if json_mode():
         return
     # ASCII eğri: 0 … 5τ

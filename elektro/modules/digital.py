@@ -212,3 +212,176 @@ def expr(expression: str = typer.Argument(..., help=t("dig.expr.arg"))):
         return
     console.print(tbl)
     console.print(f"[cyan]Σm[/]({', '.join(map(str, minterms)) or '-'})")
+
+
+# --- Sadeleştirme (Quine-McCluskey) --------------------------------------------------------
+
+def _combine(a: str, b: str) -> Optional[str]:
+    """'0-1' ve '0-0' gibi iki kalıp tek bitte farklıysa birleştirir."""
+    diff = [i for i, (x, y) in enumerate(zip(a, b)) if x != y]
+    if len(diff) == 1 and "-" not in (a[diff[0]], b[diff[0]]):
+        i = diff[0]
+        return a[:i] + "-" + a[i + 1:]
+    return None
+
+
+def _covers(pattern: str, m: int, n: int) -> bool:
+    bits = format(m, f"0{n}b")
+    return all(p in ("-", b) for p, b in zip(pattern, bits))
+
+
+def prime_implicants(minterms: List[int], dontcares: List[int], n: int) -> List[str]:
+    current = {format(m, f"0{n}b") for m in set(minterms) | set(dontcares)}
+    primes = set()
+    while current:
+        merged, used = set(), set()
+        items = sorted(current)
+        for i, a in enumerate(items):
+            for b in items[i + 1:]:
+                c = _combine(a, b)
+                if c:
+                    merged.add(c)
+                    used.update((a, b))
+        primes |= current - used
+        current = merged
+    return sorted(primes)
+
+
+def _cost(terms) -> tuple:
+    return (len(terms), sum(n.count("0") + n.count("1") for n in terms))
+
+
+def minimal_cover(minterms: List[int], dontcares: List[int], n: int) -> List[str]:
+    """En az terimli (eşitlikte en az literal) örtü: esas asal terimler + kalan için arama."""
+    if not minterms:
+        return []
+    primes = prime_implicants(minterms, dontcares, n)
+    remaining = set(minterms)
+    chosen = []
+    # Esas asal terimler
+    for m in sorted(minterms):
+        covering = [p for p in primes if _covers(p, m, n)]
+        if len(covering) == 1 and covering[0] not in chosen:
+            chosen.append(covering[0])
+    for p in chosen:
+        remaining -= {m for m in remaining if _covers(p, m, n)}
+    if not remaining:
+        return sorted(chosen, key=_literal_sort)
+    candidates = [p for p in primes if p not in chosen and any(_covers(p, m, n) for m in remaining)]
+    best = None
+    if len(candidates) <= 18:
+        for size in range(1, len(candidates) + 1):
+            for combo in itertools.combinations(candidates, size):
+                if all(any(_covers(p, m, n) for p in combo) for m in remaining):
+                    if best is None or _cost(combo) < _cost(best):
+                        best = combo
+            if best is not None:
+                break
+    else:   # çok büyük: açgözlü seçim
+        best, left = [], set(remaining)
+        while left:
+            p = max(candidates, key=lambda c: (sum(_covers(c, m, n) for m in left), -_cost([c])[1]))
+            best.append(p)
+            left -= {m for m in left if _covers(p, m, n)}
+    return sorted(chosen + list(best), key=_literal_sort)
+
+
+def _literal_sort(p: str):
+    return (-p.count("-"), p.replace("-", "2"))
+
+
+def to_expr(terms: List[str], names: List[str], style: str = "code") -> str:
+    if not terms:
+        return "0"
+    if all(set(p) == {"-"} for p in terms):
+        return "1"
+    parts = []
+    for p in terms:
+        lits = []
+        for bit, name in zip(p, names):
+            if bit == "1":
+                lits.append(name)
+            elif bit == "0":
+                lits.append(f"~{name}" if style == "code" else f"{name}'")
+        parts.append((" & " if style == "code" else "").join(lits))
+    if style == "code":
+        return " | ".join(f"({x})" if " & " in x and len(parts) > 1 else x for x in parts)
+    return " + ".join(parts)
+
+
+GRAY = {1: ["0", "1"], 2: ["00", "01", "11", "10"]}
+
+
+def kmap_table(names: List[str], ones: set, dcs: set) -> Optional[Table]:
+    n = len(names)
+    if not 2 <= n <= 4:
+        return None
+    row_bits, col_bits = n // 2, n - n // 2
+    rows, cols = GRAY[row_bits], GRAY[col_bits]
+    tbl = Table(title="K-map", show_lines=True)
+    tbl.add_column("".join(names[:row_bits]) + " \\ " + "".join(names[row_bits:]), style="bold")
+    for c in cols:
+        tbl.add_column(c, justify="center")
+    for r in rows:
+        cells = []
+        for c in cols:
+            m = int(r + c, 2)
+            cells.append("[bold green]1[/]" if m in ones else "[yellow]x[/]" if m in dcs else "[dim]0[/]")
+        tbl.add_row(r, *cells)
+    return tbl
+
+
+def _parse_int_list(text: Optional[str]) -> List[int]:
+    if not text:
+        return []
+    try:
+        return sorted({int(x) for x in text.replace(" ", ",").split(",") if x})
+    except ValueError:
+        raise ValueError(t("dig.simp.bad_list"))
+
+
+@app.command(help=t("dig.simp.help"))
+def simplify(
+    expression: Optional[str] = typer.Argument(None, help=t("dig.simp.arg")),
+    minterms: Optional[str] = typer.Option(None, "--minterms", "-m", help=t("dig.simp.opt.minterms")),
+    dontcare: Optional[str] = typer.Option(None, "--dontcare", "-d", help=t("dig.simp.opt.dontcare")),
+    variables: Optional[str] = typer.Option(None, "--vars", "-v", help=t("dig.simp.opt.vars")),
+):
+    try:
+        dcs = _parse_int_list(dontcare)
+        if expression:
+            names, code = parse_expr(expression)
+            ones = [i for i, combo in enumerate(itertools.product((0, 1), repeat=len(names)))
+                    if evaluate(code, dict(zip(names, combo)))]
+        else:
+            ones = _parse_int_list(minterms)
+            if not ones and not minterms:
+                fail(t("dig.simp.need"))
+            top = max(ones + dcs + [1])
+            count = max(1, top.bit_length())
+            names = ([x.strip() for x in variables.split(",") if x.strip()] if variables
+                     else [chr(ord("A") + i) for i in range(count)])
+            if len(names) < count:
+                fail(t("dig.simp.few_vars", n=count))
+    except ValueError as e:
+        fail(str(e))
+    if len(names) > 8:
+        fail(t("dig.simp.too_many"))
+    n = len(names)
+    dcs = [d for d in dcs if d not in ones and d < 2 ** n]
+    cover = minimal_cover(ones, dcs, n)
+    code_form, math_form = to_expr(cover, names, "code"), to_expr(cover, names, "math")
+    if json_mode():
+        print_json({"variables": names, "minterms": ones, "dontcares": dcs, "sop": code_form,
+                    "sop_math": math_form, "prime_implicants": prime_implicants(ones, dcs, n) if ones else []})
+        return
+    km = kmap_table(names, set(ones), set(dcs))
+    if km:
+        console.print(km)
+    result_panel(t("dig.simp.title"), {
+        t("dig.simp.minterms"): f"Σm({', '.join(map(str, ones)) or '-'})" + (f" + d({', '.join(map(str, dcs))})" if dcs else ""),
+        t("dig.simp.result"): f"[bold]{math_form}[/]",
+        t("dig.simp.code"): code_form,
+        t("dig.simp.cost"): t("dig.simp.cost_val", terms=len(cover),
+                               lits=sum(p.count("0") + p.count("1") for p in cover)),
+    })

@@ -8,7 +8,7 @@ from typing import Optional
 import typer
 
 from elektro.i18n import t
-from elektro.ui import eng, fail, result_panel, theory, warn
+from elektro.ui import cli_parser, eng, fail, result_panel, theory, warn
 from elektro.units import format_si
 
 RHO_CU = 1.724e-8      # Ω·m, 20 °C
@@ -47,7 +47,7 @@ def parse_length(text: str) -> float:
 
 
 def _length_opt(help_key: str):
-    return typer.Option(None, "--length", "-l", parser=parse_length, metavar=t("wire.metavar.length"),
+    return typer.Option(None, "--length", "-l", parser=cli_parser(parse_length), metavar=t("wire.metavar.length"),
                         help=t(help_key))
 
 

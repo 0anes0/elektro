@@ -10,7 +10,7 @@ import typer
 from rich.table import Table
 
 from elektro.i18n import pct, t
-from elektro.ui import emit, fail, result_panel, theory
+from elektro.ui import cli_parser, emit, fail, result_panel, theory
 from elektro.modules.wiring import parse_length
 from elektro.units import format_si, parse_value
 
@@ -53,12 +53,12 @@ def max_distance(freq_hz: float, loss_db: float) -> float:
 
 
 def _freq_opt():
-    return typer.Option(..., "--freq", "-f", parser=parse_freq, metavar=t("rf.metavar.freq"),
+    return typer.Option(..., "--freq", "-f", parser=cli_parser(parse_freq), metavar=t("rf.metavar.freq"),
                         help=t("rf.opt.freq"))
 
 
 def _dist_opt():
-    return typer.Option(..., "--dist", "-d", parser=parse_distance, metavar=t("rf.metavar.dist"),
+    return typer.Option(..., "--dist", "-d", parser=cli_parser(parse_distance), metavar=t("rf.metavar.dist"),
                         help=t("rf.opt.dist"))
 
 
@@ -114,7 +114,7 @@ def link(
 
 @app.command(help=t("rf.wave.help"))
 def wave(
-    freq: float = typer.Option(..., "--freq", "-f", parser=parse_freq, metavar=t("rf.metavar.freq"),
+    freq: float = typer.Option(..., "--freq", "-f", parser=cli_parser(parse_freq), metavar=t("rf.metavar.freq"),
                                help=t("rf.opt.freq")),
     vf: float = typer.Option(1.0, "--vf", help=t("rf.wave.opt.vf")),
 ):
@@ -263,7 +263,7 @@ def microstrip(
     width: Optional[float] = typer.Option(None, "--width", "-w", help=t("ms.opt.width")),
     h: float = typer.Option(1.6, "--h", help=t("ms.opt.h")),
     er: float = typer.Option(4.4, "--er", help=t("ms.opt.er")),
-    freq: Optional[float] = typer.Option(None, "--freq", "-f", parser=parse_freq,
+    freq: Optional[float] = typer.Option(None, "--freq", "-f", parser=cli_parser(parse_freq),
                                          metavar=t("rf.metavar.freq"), help=t("rf.opt.freq")),
 ):
     if (z0 is None) == (width is None):
@@ -330,8 +330,8 @@ def lora_airtime(sf: int, bw: float, cr: int, payload: int, preamble: int = 8,
 @app.command(help=t("lora.help"))
 def lora(
     sf: int = typer.Option(9, "--sf", min=7, max=12, help=t("lora.opt.sf")),
-    bw: float = typer.Option(125e3, "--bw", parser=parse_value, metavar="Hz", help=t("lora.opt.bw")),
-    cr: int = typer.Option(1, "--cr", parser=parse_cr, metavar="4/5..4/8", help=t("lora.opt.cr")),
+    bw: float = typer.Option(125e3, "--bw", parser=cli_parser(parse_value), metavar="Hz", help=t("lora.opt.bw")),
+    cr: int = typer.Option(1, "--cr", parser=cli_parser(parse_cr), metavar="4/5..4/8", help=t("lora.opt.cr")),
     payload: int = typer.Option(20, "--payload", "-p", min=0, max=255, help=t("lora.opt.payload")),
     preamble: int = typer.Option(8, "--preamble", min=6, help=t("lora.opt.preamble")),
     no_crc: bool = typer.Option(False, "--no-crc", help=t("lora.opt.no_crc")),
@@ -364,7 +364,7 @@ EARTH_RADIUS = 6_371_000.0
 def fresnel(
     freq: float = _freq_opt(),
     dist: float = _dist_opt(),
-    at: Optional[float] = typer.Option(None, "--at", parser=parse_distance, metavar=t("rf.metavar.dist"),
+    at: Optional[float] = typer.Option(None, "--at", parser=cli_parser(parse_distance), metavar=t("rf.metavar.dist"),
                                        help=t("fresnel.opt.at")),
     k: float = typer.Option(4 / 3, "--k", help=t("fresnel.opt.k")),
 ):
@@ -439,7 +439,7 @@ def find_coax(name: str) -> Coax:
 def coax(
     cable: str = typer.Argument(..., help=t("coax.arg")),
     freq: float = _freq_opt(),
-    length: float = typer.Option(..., "--length", "-l", parser=parse_length,
+    length: float = typer.Option(..., "--length", "-l", parser=cli_parser(parse_length),
                                  metavar=t("coax.metavar.length"), help=t("coax.opt.length")),
 ):
     try:

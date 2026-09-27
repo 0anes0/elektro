@@ -88,9 +88,24 @@ def warn(message: str) -> None:
     (err_console if _json else console).print(f"[yellow]{t('ui.warning')}:[/] {message}")
 
 
+def cli_parser(fn):
+    """Ayrıştırıcının ValueError mesajını kullanıcıya ulaştırır.
+
+    Typer/Click, parser= ile verilen fonksiyonlardaki ValueError'ı yakalayıp sadece
+    "Invalid value" der; BadParameter'a çevirince asıl açıklama görünür.
+    """
+    def wrapper(value):
+        try:
+            return fn(value)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    wrapper.__name__ = getattr(fn, "__name__", "parser")
+    return wrapper
+
+
 def eng(help_text: str) -> dict:
     """Mühendislik gösterimini (1k, 100n, 4k7) kabul eden seçenekler için ortak ayarlar."""
-    return {"parser": parse_value, "metavar": t("ui.metavar.value"), "help": help_text}
+    return {"parser": cli_parser(parse_value), "metavar": t("ui.metavar.value"), "help": help_text}
 
 
 class DefaultCommandGroup(TyperGroup):

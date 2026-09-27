@@ -6,6 +6,7 @@ import datetime
 import io
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -20,13 +21,13 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from elektro import REPO_URL, __version__
+from elektro import REPO_URL, __version__, state
 from elektro.i18n import (LANGUAGES, config_path, get_language, normalize, save_language,
                           set_language, t)
 from elektro.modules import datasheet as datasheet_mod
-from elektro.modules import (analog, digital, embedded, filters, ohm, passive, power, resistor, rf,
-                             timer555, tools, wiring)
-from elektro.ui import console, fail, set_json
+from elektro.modules import (analog, digital, embedded, filters, ohm, opamp, passive, power, resistor,
+                             rf, timer555, tools, wiring)
+from elektro.ui import console, err_console, fail, json_mode, print_json, set_json
 
 
 def _localize_typer() -> None:
@@ -71,6 +72,7 @@ app.add_typer(resistor.app, name="resistor", rich_help_panel=BASIC)
 app.add_typer(timer555.app, name="555", rich_help_panel=BASIC)
 app.add_typer(digital.app, name="logic", rich_help_panel=BASIC)
 app.add_typer(analog.switch_app, name="switch", rich_help_panel=BASIC)
+app.add_typer(opamp.app, name="opamp", rich_help_panel=BASIC)
 app.command(rich_help_panel=BASIC, help=t("chg.help"))(analog.charge)
 
 app.command(rich_help_panel=PASSIVE, help=t("combine.series.help"))(passive.series)
@@ -79,10 +81,15 @@ app.command(rich_help_panel=PASSIVE, help=t("div.help"))(passive.divider)
 app.command(rich_help_panel=PASSIVE, help=t("led.help"))(passive.led)
 app.command(rich_help_panel=PASSIVE, help=t("eseries.help"))(passive.eseries)
 app.command(rich_help_panel=PASSIVE, help=t("cap.help"))(passive.cap)
+app.command(rich_help_panel=PASSIVE, help=t("coil.help"))(passive.coil)
+app.command(rich_help_panel=PASSIVE, help=t("xtal.help"))(passive.crystal)
 
 app.command(rich_help_panel=POWER, help=t("reg.help"))(power.regulator)
 app.command(rich_help_panel=POWER, help=t("bat.help"))(power.battery)
 app.command(rich_help_panel=POWER, help=t("th.help"))(power.thermal)
+app.command(rich_help_panel=POWER, help=t("rect.help"))(power.rectifier)
+app.command(rich_help_panel=POWER, help=t("ac.help"))(power.acpower)
+app.command(rich_help_panel=POWER, help=t("sd.help"))(power.stardelta)
 app.command(rich_help_panel=POWER, help=t("wire.help"))(wiring.wire)
 app.command(rich_help_panel=POWER, help=t("trace.help"))(wiring.trace)
 
@@ -108,6 +115,7 @@ MENU = [
         ("logic", "menu.logic", 'elektro logic expr "A & ~B"'),
         ("switch", "menu.switch", "elektro switch bjt --ic 500m -v 3.3"),
         ("charge", "menu.charge", "elektro charge --r 10k --c 100u --v 5"),
+        ("opamp", "menu.opamp", "elektro opamp noninv --gain 11"),
     ],
     [
         ("series/parallel", "menu.combine", "elektro parallel 1k 2k2"),
@@ -115,6 +123,8 @@ MENU = [
         ("led", "menu.led", "elektro led --vs 5 --vf 2"),
         ("eseries", "menu.eseries", "elektro eseries 4k8"),
         ("cap", "menu.cap", "elektro cap 104"),
+        ("coil", "menu.coil", "elektro coil --l 1u --d 10"),
+        ("crystal", "menu.crystal", "elektro crystal --cl 12p"),
     ],
     [
         ("regulator", "menu.regulator", "elektro regulator lm317 --vout 5"),
@@ -122,6 +132,8 @@ MENU = [
         ("thermal", "menu.thermal", "elektro thermal -p 2 --rth-jc 5"),
         ("wire", "menu.wire", "elektro wire --awg 22 -l 3 -i 2"),
         ("trace", "menu.trace", "elektro trace -i 3"),
+        ("rectifier", "menu.rectifier", "elektro rectifier --vac 12 -i 1 --ripple 1"),
+        ("acpower", "menu.acpower", "elektro acpower --i 10 --pf 0.8 --target-pf 0.95"),
     ],
     [
         ("filter", "menu.filter", "elektro filter rc --fc 1k --c 10n"),
@@ -135,6 +147,9 @@ MENU = [
         ("crc", "menu.crc", 'elektro crc "01 03 00 00 00 0A"'),
     ],
     [
+        ("shell", "menu.shell", "elektro shell"),
+        ("set / vars", "menu.vars", "elektro set vin 12  →  -v @vin"),
+        ("history", "menu.history", "elektro history"),
         ("calc", "menu.calc", 'elektro calc "12 / (4k7 + 1k)"'),
         ("unit", "menu.unit", "elektro unit 25 c"),
         ("datasheet", "menu.datasheet", "elektro datasheet lm358"),
@@ -181,23 +196,230 @@ def main(
     # burada yalnızca geçerliliği kontrol edilir.
     if lang is not None and normalize(lang) is None:
         fail(t("lang.unknown", code=lang, options=", ".join(LANGUAGES)))
-    if json_out:
-        set_json(True)
+    set_json(json_out)          # her çağrıda sıfırdan: kabukta bir önceki komuttan kalmasın
     if ctx.invoked_subcommand is None:
         show_menu()
 
 
-def run() -> None:
-    """Konsol giriş noktası. `--json` komutun herhangi bir yerine yazılabilsin diye önden alınır."""
-    args = sys.argv[1:]
-    if "--" in args:
-        head, tail = args[:args.index("--")], args[args.index("--"):]
+# Geçmişe yazılmayan komutlar (yönetim komutları)
+NOT_RECORDED = {"history", "shell", "helpall", "manpage", "language", "languages", "lang", "update",
+                "set", "unset", "vars"}
+
+
+def _strip_global(args) -> list:
+    """--lang X ve --lang=X'i çıkarır (geçmiş, o anki dille tekrar çalışsın)."""
+    out, skip = [], False
+    for a in args:
+        if skip:
+            skip = False
+        elif a == "--lang":
+            skip = True
+        elif not a.startswith("--lang="):
+            out.append(a)
+    return out
+
+
+def _recordable(args) -> bool:
+    words = [a for a in args if not a.startswith("-")]
+    return bool(words) and words[0] not in NOT_RECORDED and not {"-h", "--help"} & set(args)
+
+
+def execute(args, record: bool = True) -> int:
+    """Bir komut satırını çalıştırır: @değişkenleri açar, --json'u işler, geçmişe yazar.
+
+    Hem normal çağrı hem `elektro shell` hem de `elektro history --run` bunu kullanır.
+    """
+    try:
+        expanded = state.expand_vars(list(args))
+    except KeyError as e:
+        err_console.print(f"[bold red]{t('ui.error')}:[/] {t('vars.unknown', name=e.args[0])}")
+        return 1
+    if "--" in expanded:
+        cut = expanded.index("--")
+        head, tail = expanded[:cut], expanded[cut:]
     else:
-        head, tail = args, []
-    if "--json" in head:
-        head = [a for a in head if a != "--json"]
-        set_json(True)
-    app(args=head + tail, prog_name="elektro")
+        head, tail = expanded, []
+    if "--json" in head:          # komutun sonunda da yazılabilsin: kök seçeneği olarak başa al
+        head = ["--json"] + [a for a in head if a != "--json"]
+    try:
+        app(args=head + tail, prog_name="elektro")
+        code = 0
+    except SystemExit as e:
+        code = e.code if isinstance(e.code, int) else (0 if e.code is None else 1)
+    clean = _strip_global(args)
+    if code == 0 and record and _recordable(clean):
+        state.add_history(clean)
+    return code
+
+
+def run() -> None:
+    """Konsol giriş noktası."""
+    sys.exit(execute(sys.argv[1:]))
+
+
+# --- değişkenler -----------------------------------------------------------------------------
+
+@app.command("set", rich_help_panel=TOOLS, help=t("vars.set.help"))
+def set_cmd(
+    name: str = typer.Argument(..., help=t("vars.arg.name")),
+    value: str = typer.Argument(..., help=t("vars.arg.value")),
+    local: bool = typer.Option(False, "--local", help=t("vars.opt.local")),
+):
+    try:
+        path = state.set_var(name, value, local)
+    except ValueError as e:
+        fail(str(e))
+    console.print(f"[bold green]✓[/] @{name} = {value}  [dim]({path})[/]")
+
+
+@app.command("unset", rich_help_panel=TOOLS, help=t("vars.unset.help"))
+def unset_cmd(name: str = typer.Argument(..., help=t("vars.arg.name"))):
+    if not state.unset_var(name):
+        fail(t("vars.unknown", name=name))
+    console.print(f"[bold green]✓[/] @{name} {t('vars.removed')}")
+
+
+@app.command("vars", rich_help_panel=TOOLS, help=t("vars.help"))
+def vars_cmd():
+    global_vars, local_vars = state.load_vars()
+    if json_mode():
+        print_json({"global": global_vars, "local": local_vars})
+        return
+    if not global_vars and not local_vars:
+        console.print(f"[dim]{t('vars.empty')}[/]")
+        return
+    tbl = Table(header_style="bold")
+    tbl.add_column(t("vars.col.name"), style="cyan")
+    tbl.add_column(t("vars.col.value"), style="bold green")
+    tbl.add_column(t("vars.col.scope"), style="dim")
+    for name, value in sorted(global_vars.items()):
+        mark = f" [yellow]({t('vars.overridden')})[/]" if name in local_vars else ""
+        tbl.add_row(f"@{name}", str(value), t("vars.global") + mark)
+    for name, value in sorted(local_vars.items()):
+        tbl.add_row(f"@{name}", str(value), t("vars.local"))
+    console.print(tbl)
+    local = state.local_file()
+    console.print(f"[dim]{config_path()}" + (f"\n{local}" if local else "") + "[/]")
+
+
+# --- geçmiş ------------------------------------------------------------------------------------
+
+@app.command(rich_help_panel=TOOLS, help=t("hist.help"))
+def history(
+    count: int = typer.Option(20, "-n", help=t("hist.opt.n")),
+    search: Optional[str] = typer.Option(None, "--search", "-s", help=t("hist.opt.search")),
+    run_id: Optional[int] = typer.Option(None, "--run", "-r", help=t("hist.opt.run")),
+    clear: bool = typer.Option(False, "--clear", help=t("hist.opt.clear")),
+):
+    if clear:
+        state.clear_history()
+        console.print(f"[bold green]✓[/] {t('hist.cleared')}")
+        return
+    entries = state.read_history()
+    if run_id is not None:
+        if not 1 <= run_id <= len(entries):
+            fail(t("hist.bad_id", max=len(entries)))
+        args = entries[run_id - 1]["args"]
+        console.print(f"[dim]$ elektro {' '.join(shlex.quote(a) for a in args)}[/]")
+        raise typer.Exit(execute(args, record=True))
+    indexed = list(enumerate(entries, 1))
+    if search:
+        indexed = [(i, e) for i, e in indexed if search.lower() in " ".join(e["args"]).lower()]
+    indexed = indexed[-count:]
+    if json_mode():
+        print_json([{"id": i, "time": e["time"], "args": e["args"]} for i, e in indexed])
+        return
+    if not indexed:
+        console.print(f"[dim]{t('hist.empty')}[/]")
+        return
+    tbl = Table(box=None, header_style="bold")
+    tbl.add_column("#", justify="right", style="dim")
+    tbl.add_column(t("ds.col.date"), style="dim")
+    tbl.add_column(t("hist.col.command"))
+    for i, e in indexed:
+        when = datetime.datetime.fromtimestamp(e["time"]).strftime("%m-%d %H:%M")
+        tbl.add_row(str(i), when, "elektro " + " ".join(shlex.quote(a) for a in e["args"]))
+    console.print(tbl)
+    console.print(f"[dim]{t('hist.rerun')}[/]")
+
+
+# --- etkileşimli kabuk (REPL) ----------------------------------------------------------------
+
+def _command_words() -> dict:
+    root = typer.main.get_command(app)
+    words = {}
+    for name, cmd in root.commands.items():
+        if not cmd.hidden:
+            words[name] = sorted(getattr(cmd, "commands", {}) or [])
+    return words
+
+
+def _setup_readline(words: dict):
+    try:
+        import readline
+    except ImportError:
+        return None
+    hist = state.state_dir() / "shell_history"
+    try:
+        readline.read_history_file(hist)
+    except OSError:
+        pass
+    readline.set_history_length(1000)
+
+    def complete(text, index):
+        line = readline.get_line_buffer().split()
+        if not line or (len(line) == 1 and not readline.get_line_buffer().endswith(" ")):
+            options = [w for w in list(words) + ["exit", "help", "clear"] if w.startswith(text)]
+        else:
+            options = [w for w in words.get(line[0], []) if w.startswith(text)]
+        return options[index] + " " if index < len(options) else None
+
+    readline.set_completer(complete)
+    readline.set_completer_delims(" \t")
+    readline.parse_and_bind("tab: complete")
+    return readline, hist
+
+
+@app.command(rich_help_panel=TOOLS, help=t("shell.help"))
+def shell():
+    rl = _setup_readline(_command_words())
+    console.print(f"[bold yellow]⚡ ELEKTRO {__version__}[/] — {t('shell.welcome')}")
+    while True:
+        try:
+            line = input("elektro> ").strip()
+        except EOFError:
+            console.print()
+            break
+        except KeyboardInterrupt:
+            console.print()
+            continue
+        if not line:
+            continue
+        if line in ("exit", "quit", "q"):
+            break
+        if line in ("help", "?"):
+            show_menu()
+            continue
+        if line == "clear":
+            console.clear()
+            continue
+        try:
+            args = shlex.split(line)
+        except ValueError as e:
+            err_console.print(f"[bold red]{t('ui.error')}:[/] {e}")
+            continue
+        if args and args[0] == "elektro":
+            args = args[1:]
+        if not args or args[0] == "shell":
+            continue
+        execute(args)
+    if rl:
+        readline, hist = rl
+        try:
+            hist.parent.mkdir(parents=True, exist_ok=True)
+            readline.write_history_file(hist)
+        except OSError:
+            pass
 
 
 # --- language ------------------------------------------------------------------------

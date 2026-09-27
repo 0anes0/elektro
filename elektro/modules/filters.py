@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import cmath
 import math
+from pathlib import Path
 from typing import Callable, Optional
 
 import typer
@@ -11,7 +12,8 @@ from rich.panel import Panel
 from rich.table import Table
 
 from elektro.i18n import t
-from elektro.ui import console, eng, fail, json_mode, result_panel, theory
+from elektro.plot import PlotError, bode, logspace, plot_path
+from elektro.ui import cli_parser, console, eng, err_console, fail, json_mode, result_panel, theory
 from elektro.units import format_si
 
 app = typer.Typer(help=t("flt.help"), no_args_is_help=True)
@@ -61,6 +63,25 @@ def _public(points: list) -> list:
     return [{k: v for k, v in p.items() if not k.startswith("_")} for p in points]
 
 
+def _plot_opt():
+    return typer.Option(None, "--plot", parser=cli_parser(plot_path), metavar=t("plot.metavar"), help=t("plot.opt"))
+
+
+def save_plot(path: Optional[Path], h: Callable[[float], complex], f0: float, title: str) -> None:
+    """--plot verildiyse f0/100 … f0·100 aralığında Bode grafiği kaydeder."""
+    if path is None:
+        return
+    freqs = logspace(f0 / 100, f0 * 100, 401)
+    vals = [h(f) for f in freqs]
+    gains = [db(abs(v)) if abs(v) > 1e-6 else -math.inf for v in vals]
+    phases = [math.degrees(cmath.phase(v)) for v in vals]
+    try:
+        out = bode(path, title, freqs, gains, phases, mark=f0)
+    except (PlotError, OSError) as e:
+        fail(str(e))
+    (err_console if json_mode() else console).print(f"[green]✓[/] {t('plot.saved', path=out)}")
+
+
 def _solve_first_order(r, x, fc, x_name, x_to_fc, fc_to_x, fc_to_r):
     """R, X (C veya L), fc'den ikisi verilince üçüncüsünü bulur."""
     if sum(v is not None for v in (r, x, fc)) != 2:
@@ -82,6 +103,7 @@ def rc(
     c: Optional[float] = typer.Option(None, "--c", **eng(t("flt.opt.c"))),
     fc: Optional[float] = typer.Option(None, "--fc", **eng(t("flt.opt.fc"))),
     high: bool = typer.Option(False, "--high", "-H", help=t("flt.rc.opt.high")),
+    plot: Optional[Path] = _plot_opt(),
 ):
     r, c, fc = _solve_first_order(
         r, c, fc, "c",
@@ -103,6 +125,7 @@ def rc(
     }, data={"type": "highpass" if high else "lowpass", "fc_hz": fc, "tau_s": r * c,
              "r_ohm": r, "c_f": c, "response": _public(resp)})
     print_response(resp)
+    save_plot(plot, h, fc, t("flt.rc.title_high" if high else "flt.rc.title_low"))
     theory(t("flt.rc.note1", phase="+45°" if high else "-45°"), t("flt.rc.note2"))
 
 
@@ -112,6 +135,7 @@ def rl(
     l: Optional[float] = typer.Option(None, "--l", **eng(t("flt.opt.l"))),
     fc: Optional[float] = typer.Option(None, "--fc", **eng(t("flt.opt.fc"))),
     low: bool = typer.Option(False, "--low", "-L", help=t("flt.rl.opt.low")),
+    plot: Optional[Path] = _plot_opt(),
 ):
     r, l, fc = _solve_first_order(
         r, l, fc, "l",
@@ -132,6 +156,7 @@ def rl(
     }, data={"type": "lowpass" if low else "highpass", "fc_hz": fc, "tau_s": l / r,
              "r_ohm": r, "l_h": l, "response": _public(resp)})
     print_response(resp)
+    save_plot(plot, h, fc, t("flt.rl.title_low" if low else "flt.rl.title_high"))
 
 
 @app.command(help=t("flt.lc.help"))
@@ -166,6 +191,7 @@ def rlc(
     r: float = typer.Option(..., "--r", **eng(t("flt.opt.r"))),
     l: float = typer.Option(..., "--l", **eng(t("flt.opt.l"))),
     c: float = typer.Option(..., "--c", **eng(t("flt.opt.c"))),
+    plot: Optional[Path] = _plot_opt(),
 ):
     f0 = 1 / (TWO_PI * math.sqrt(l * c))
     bw = r / (TWO_PI * l)
@@ -185,6 +211,7 @@ def rlc(
     }, data={"f0_hz": f0, "bandwidth_hz": bw, "q": q, "f_low_hz": f_lo, "f_high_hz": f_hi,
              "response": _public(resp)})
     print_response(resp)
+    save_plot(plot, h, f0, t("flt.rlc.title"))
     theory(t("flt.rlc.note"))
 
 
@@ -193,6 +220,7 @@ def notch(
     r: float = typer.Option(..., "--r", **eng(t("flt.notch.opt.r"))),
     l: float = typer.Option(..., "--l", **eng(t("flt.opt.l"))),
     c: float = typer.Option(..., "--c", **eng(t("flt.opt.c"))),
+    plot: Optional[Path] = _plot_opt(),
 ):
     f0 = 1 / (TWO_PI * math.sqrt(l * c))
     q = r / (TWO_PI * f0 * l)
@@ -210,6 +238,7 @@ def notch(
         t("flt.bw"): format_si(f0 / q, "Hz"),
     }, data={"f0_hz": f0, "q": q, "bandwidth_hz": f0 / q, "response": _public(resp)})
     print_response(resp)
+    save_plot(plot, h, f0, t("flt.notch.title"))
     theory(t("flt.notch.note"))
 
 

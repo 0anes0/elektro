@@ -11,7 +11,7 @@ import typer
 from rich.table import Table
 
 from elektro.i18n import pct, t
-from elektro.ui import emit, eng, fail, result_panel, theory, warn
+from elektro.ui import cli_parser, emit, eng, fail, result_panel, theory, warn
 from elektro.units import format_si, parse_value, series_values
 
 MCUS = ("avr", "stm32", "generic")
@@ -205,7 +205,7 @@ def _i2c_speed(text: str) -> float:
 def i2c(
     vdd: float = typer.Option(3.3, "--vdd", **eng(t("i2c.opt.vdd"))),
     cb: float = typer.Option(..., "--cb", **eng(t("i2c.opt.cb"))),
-    speed: float = typer.Option(400e3, "--speed", "-s", parser=_i2c_speed,
+    speed: float = typer.Option(400e3, "--speed", "-s", parser=cli_parser(_i2c_speed),
                                 metavar="100k|400k|1M", help=t("i2c.opt.speed")),
 ):
     if vdd <= 0.4 or cb <= 0:

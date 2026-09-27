@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 
 import typer
-from rich.table import Table
 
 from elektro.i18n import pct, t
-from elektro.ui import emit, eng, fail, result_panel, theory, warn
-from elektro.units import format_si, nearest_standard
+from elektro.ui import cli_parser, eng, fail, result_panel, theory, warn
+from elektro.units import format_si, nearest_standard, parse_value
 
 
 # --- Regülatör --------------------------------------------------------------------
@@ -209,3 +209,159 @@ def thermal(
     result_panel(t("th.title"), rows, data=data)
     if margin < 0:
         warn(t("th.over"))
+
+
+# --- Doğrultucu + filtre kondansatörü -------------------------------------------------------
+
+CAP_VOLTAGES = [6.3, 10, 16, 25, 35, 50, 63, 80, 100, 160, 200, 250, 350, 400, 450]
+RECTIFIERS = {"bridge": (2, 2), "center": (1, 2), "half": (1, 1)}   # (seri diyot, dalgalanma çarpanı)
+
+
+def rectifier_calc(vac: float, kind: str, freq: float, vdiode: float, iload: Optional[float],
+                   ripple: Optional[float], c: Optional[float]) -> dict:
+    diodes, k = RECTIFIERS[kind]
+    vpeak = vac * math.sqrt(2) - diodes * vdiode
+    if vpeak <= 0:
+        raise ValueError(t("rect.too_low"))
+    out = {"vpeak": vpeak, "piv": vac * math.sqrt(2) * (2 if kind == "center" else 1), "ripple_freq": k * freq}
+    if iload is not None:
+        if c is None and ripple is not None:
+            c = iload / (k * freq * ripple)
+        if c is not None:
+            ripple = iload / (k * freq * c)
+            out.update(c=c, ripple=ripple, vdc=vpeak - ripple / 2, vmin=vpeak - ripple)
+    out["cap_voltage"] = next((v for v in CAP_VOLTAGES if v >= vpeak * 1.25), None)
+    return out
+
+
+def rectifier(
+    vac: float = typer.Option(..., "--vac", **eng(t("rect.opt.vac"))),
+    kind: str = typer.Option("bridge", "--type", help=t("rect.opt.type")),
+    freq: float = typer.Option(50, "--freq", "-f", **eng(t("rect.opt.freq"))),
+    iload: Optional[float] = typer.Option(None, "--iload", "-i", **eng(t("rect.opt.iload"))),
+    ripple: Optional[float] = typer.Option(None, "--ripple", **eng(t("rect.opt.ripple"))),
+    c: Optional[float] = typer.Option(None, "--c", **eng(t("rect.opt.c"))),
+    vdiode: float = typer.Option(0.7, "--vdiode", help=t("rect.opt.vdiode")),
+    vmains: Optional[float] = typer.Option(None, "--vmains", **eng(t("rect.opt.vmains"))),
+):
+    kind = kind.lower()
+    if kind not in RECTIFIERS:
+        fail(t("rect.bad_type", options=", ".join(RECTIFIERS)))
+    try:
+        r = rectifier_calc(vac, kind, freq, vdiode, iload, ripple, c)
+    except ValueError as e:
+        fail(str(e))
+    rows = {
+        t("rect.type"): t(f"rect.kind.{kind}"),
+        t("rect.vpeak"): format_si(r["vpeak"], "V"),
+        t("rect.piv"): format_si(r["piv"], "V"),
+        t("rect.ripple_freq"): format_si(r["ripple_freq"], "Hz"),
+    }
+    if "c" in r:
+        c_std = next((x for x in (1e-6 * v for v in (100, 220, 330, 470, 680, 1000, 1500, 2200, 3300,
+                                                          4700, 6800, 10000, 15000, 22000)) if x >= r["c"]), None)
+        rows[t("rect.c")] = format_si(r["c"], "F") + (f"  → {format_si(c_std, 'F')}" if c_std else "")
+        rows[t("rect.ripple")] = format_si(r["ripple"], "V")
+        rows["Vdc (avg)"] = format_si(r["vdc"], "V")
+        rows["Vmin"] = format_si(r["vmin"], "V")
+    if r["cap_voltage"]:
+        rows[t("rect.cap_voltage")] = f"≥ {r['cap_voltage']:g} V"
+    if vmains:
+        rows[t("rect.ratio")] = f"{vmains / vac:.2f} : 1"
+    if iload is not None:
+        rows[t("rect.diode_i")] = format_si(iload * (1 if kind == "half" else 0.5), "A") + " (avg)"
+    result_panel(t("rect.title"), rows, data={"type": kind, **{k: v for k, v in r.items()}})
+    if "c" not in r:
+        theory(t("rect.hint"))
+    else:
+        theory(t("rect.note"))
+
+
+# --- AC güç ------------------------------------------------------------------------------------
+
+def ac_power(v: float, i: float, pf: float, phases: int) -> dict:
+    s = (math.sqrt(3) if phases == 3 else 1) * v * i
+    p = s * pf
+    q = math.sqrt(max(s * s - p * p, 0))
+    return {"s": s, "p": p, "q": q, "phi": math.degrees(math.acos(pf))}
+
+
+def correction_capacitor(p: float, pf_from: float, pf_to: float, v: float, freq: float, phases: int) -> dict:
+    qc = p * (math.tan(math.acos(pf_from)) - math.tan(math.acos(pf_to)))
+    w = 2 * math.pi * freq
+    # 3 fazda üçgen bağlı kondansatör başına: V hat gerilimi
+    c = qc / (3 * w * v * v) if phases == 3 else qc / (w * v * v)
+    return {"qc": qc, "c": c}
+
+
+def acpower(
+    v: float = typer.Option(230, "--v", **eng(t("ac.opt.v"))),
+    i: Optional[float] = typer.Option(None, "--i", **eng(t("ac.opt.i"))),
+    p: Optional[float] = typer.Option(None, "--p", **eng(t("ac.opt.p"))),
+    pf: float = typer.Option(1.0, "--pf", help=t("ac.opt.pf")),
+    phases: int = typer.Option(1, "--phases", help=t("ac.opt.phases")),
+    target_pf: Optional[float] = typer.Option(None, "--target-pf", help=t("ac.opt.target")),
+    freq: float = typer.Option(50, "--freq", "-f", **eng(t("rect.opt.freq"))),
+):
+    if phases not in (1, 3):
+        fail(t("ac.bad_phases"))
+    if not 0 < pf <= 1 or v <= 0:
+        fail(t("ac.bad_pf"))
+    k = math.sqrt(3) if phases == 3 else 1
+    if i is None:
+        if p is None:
+            fail(t("ac.need"))
+        i = p / (k * v * pf)
+    r = ac_power(v, i, pf, phases)
+    rows = {
+        t("ac.system"): t("ac.three") if phases == 3 else t("ac.single"),
+        t("ac.current"): format_si(i, "A"),
+        t("ac.p"): format_si(r["p"], "W"),
+        t("ac.q"): format_si(r["q"], "var"),
+        t("ac.s"): format_si(r["s"], "VA"),
+        "cos φ / φ": f"{pf:g} / {r['phi']:.1f}°",
+    }
+    data = {"phases": phases, "v": v, "i_a": i, "p_w": r["p"], "q_var": r["q"], "s_va": r["s"],
+            "pf": pf, "phi_deg": r["phi"]}
+    if target_pf is not None:
+        if not pf < target_pf <= 1:
+            fail(t("ac.bad_target"))
+        cc = correction_capacitor(r["p"], pf, target_pf, v, freq, phases)
+        new_i = r["p"] / (k * v * target_pf)
+        rows[t("ac.qc")] = format_si(cc["qc"], "var")
+        rows[t("ac.cap_delta") if phases == 3 else t("ac.cap")] = format_si(cc["c"], "F")
+        rows[t("ac.new_current")] = format_si(new_i, "A")
+        data.update(qc_var=cc["qc"], c_f=cc["c"], new_current_a=new_i)
+    result_panel(t("ac.title"), rows, data=data)
+    if phases == 3:
+        theory(t("ac.three_note"))
+
+
+def star_delta(mode: str, a: float, b: float, c: float) -> tuple:
+    if mode == "delta":            # Δ (Rab, Rbc, Rca) → Y (Ra, Rb, Rc)
+        total = a + b + c
+        return (a * c / total, a * b / total, b * c / total)
+    s = a * b + b * c + c * a      # Y (Ra, Rb, Rc) → Δ (Rab, Rbc, Rca)
+    return (s / c, s / a, s / b)
+
+
+def stardelta(
+    mode: str = typer.Argument(..., help=t("sd.arg.mode")),
+    values: List[float] = typer.Argument(..., parser=cli_parser(parse_value), metavar="R1 R2 R3", help=t("sd.arg.values")),
+):
+    mode = mode.lower()
+    if mode not in ("delta", "star") or len(values) != 3:
+        fail(t("sd.bad"))
+    if min(values) <= 0:
+        fail(t("common.positive_all"))
+    out = star_delta(mode, *values)
+    if mode == "delta":
+        rows = {"Ra (A)": format_si(out[0], "Ω"), "Rb (B)": format_si(out[1], "Ω"), "Rc (C)": format_si(out[2], "Ω")}
+        data = {"ra": out[0], "rb": out[1], "rc": out[2]}
+        title = "Δ → Y"
+    else:
+        rows = {"Rab": format_si(out[0], "Ω"), "Rbc": format_si(out[1], "Ω"), "Rca": format_si(out[2], "Ω")}
+        data = {"rab": out[0], "rbc": out[1], "rca": out[2]}
+        title = "Y → Δ"
+    result_panel(title, rows, data=data)
+    theory(t("sd.note"))

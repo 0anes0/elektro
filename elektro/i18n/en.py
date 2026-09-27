@@ -1025,3 +1025,279 @@ MESSAGES.update({
     "ds.col.size": "Size",
     "ds.col.date": "Date",
 })
+
+# --- 0.5 ---------------------------------------------------------------------------------
+MESSAGES.update({
+    "menu.opamp": "Op-amp amplifiers",
+    "menu.coil": "Air-core coil",
+    "menu.crystal": "Crystal load capacitors",
+    "menu.rectifier": "Rectifier + filter capacitor",
+    "menu.acpower": "AC power, PF correction",
+    "menu.shell": "Interactive mode",
+    "menu.vars": "Saved variables",
+    "menu.history": "Calculation history",
+
+    # op-amp
+    "op.help": "Op-amp amplifiers: non-inverting, inverting, difference, summing.",
+    "op.noninv.help": (
+        "Non-inverting amplifier.  G = 1 + Rf / Rg\n\n"
+        "With --gain it suggests standard Rf/Rg pairs; with --rf and --rg it computes the gain.\n\n"
+        "Examples:\n"
+        "  elektro opamp noninv --gain 11\n"
+        "  elektro opamp noninv --rf 100k --rg 10k --vin 0.2 --gbw 1M"
+    ),
+    "op.inv.help": (
+        "Inverting amplifier.  G = −Rf / Rin\n\n"
+        "Examples:\n"
+        "  elektro opamp inv --gain 10\n"
+        "  elektro opamp inv --rf 47k --rin 4k7 --vin 0.5 --vcc 12"
+    ),
+    "op.diff.help": (
+        "Difference amplifier (R1 = R3, R2 = R4).  Vout = (R2/R1) · (V+ − V−)\n\n"
+        "Example:\n"
+        "  elektro opamp diff --gain 5"
+    ),
+    "op.sum.help": (
+        "Inverting summing amplifier.  Vout = −Rf · Σ(Vi / Ri)\n\n"
+        "Example:\n"
+        "  elektro opamp sum --rf 10k --rin 10k --vin 1 --rin 20k --vin 0.5"
+    ),
+    "op.opt.gain": "Target gain (V/V)",
+    "op.opt.gain_inv": "Target gain magnitude (the sign is always negative)",
+    "op.opt.rf": "Feedback resistor Rf",
+    "op.opt.rg": "Resistor to ground Rg",
+    "op.opt.rin": "Input resistor Rin",
+    "op.opt.vin": "Input voltage (computes the output)",
+    "op.opt.vcc": "Supply rail (warns if the output clips)",
+    "op.opt.gbw": "Gain-bandwidth product of the op-amp (Hz), e.g. 1M",
+    "op.need": "give --gain, or both resistors",
+    "op.noninv.min": "a non-inverting amplifier cannot have a gain below 1",
+    "op.follower": "voltage follower: connect the output directly to the − input",
+    "op.pairs": "Standard resistor pairs",
+    "op.gain": "Gain",
+    "op.col.error": "Error",
+    "op.bandwidth": "Bandwidth (−3 dB)",
+    "op.zin": "Input impedance",
+    "op.note": "Note",
+    "op.clip": "Output {vout} exceeds the supply ({vcc}); it will clip.",
+    "op.noninv.title": "Non-inverting Amplifier",
+    "op.inv.title": "Inverting Amplifier",
+    "op.sum.title": "Summing Amplifier",
+    "op.noninv.note": "Keep Rf ∥ Rg ≈ source resistance for low offset; 1k-100k values are typical.",
+    "op.inv.note": "The input impedance equals Rin; pick Rin large enough for the source.",
+    "op.diff.note": "Resistor matching sets the common-mode rejection; use 0.1% resistors if possible.",
+    "op.sum.opt.rin": "Input resistor (repeat once per input)",
+    "op.sum.opt.vin": "Input voltage (repeat once per input, same order)",
+    "op.sum.mismatch": "give the same number of --rin and --vin",
+
+    # simplify
+    "dig.simp.help": (
+        "Simplify a boolean function to a minimal sum of products (Quine-McCluskey).\n\n"
+        "Shows the Karnaugh map for 2-4 variables.\n\n"
+        "Examples:\n"
+        "  elektro logic simplify \"A&B | A&~B\"\n"
+        "  elektro logic simplify -m 0,1,2,5,6,7 -v A,B,C\n"
+        "  elektro logic simplify -m 1,3,7,11,15 -d 0,2,5"
+    ),
+    "dig.simp.arg": "Boolean expression (or use --minterms)",
+    "dig.simp.opt.minterms": "Minterm list, e.g. 0,2,5,7",
+    "dig.simp.opt.dontcare": "Don't-care terms, e.g. 1,3",
+    "dig.simp.opt.vars": "Variable names, e.g. A,B,C,D (MSB first)",
+    "dig.simp.need": "give an expression or --minterms",
+    "dig.simp.bad_list": "the list must contain integers separated by commas",
+    "dig.simp.few_vars": "at least {n} variables are needed for these minterms",
+    "dig.simp.too_many": "at most 8 variables are supported",
+    "dig.simp.title": "Simplified",
+    "dig.simp.minterms": "Function",
+    "dig.simp.result": "Minimal SOP",
+    "dig.simp.code": "As expression",
+    "dig.simp.cost": "Cost",
+    "dig.simp.cost_val": "terms: {terms}, literals: {lits}",
+
+    # rectifier
+    "rect.help": (
+        "Transformer + rectifier + reservoir capacitor.\n\n"
+        "ΔV = I / (k · f · C)   (k = 2 full-wave, 1 half-wave)\n\n"
+        "Examples:\n"
+        "  elektro rectifier --vac 12 -i 1 --ripple 1\n"
+        "  elektro rectifier --vac 9 -i 500m --c 2200u --vmains 230\n"
+        "  elektro rectifier --vac 15 --type half -i 100m --ripple 0.5"
+    ),
+    "rect.opt.vac": "Secondary voltage (V RMS)",
+    "rect.opt.type": "Rectifier: bridge, center (center-tap), half",
+    "rect.opt.freq": "Mains frequency (Hz)",
+    "rect.opt.iload": "Load current (A)",
+    "rect.opt.ripple": "Allowed ripple (V p-p) — computes C",
+    "rect.opt.c": "Reservoir capacitor — computes the ripple",
+    "rect.opt.vdiode": "Forward voltage per diode (V)",
+    "rect.opt.vmains": "Primary voltage (V RMS) — computes the turns ratio",
+    "rect.bad_type": "rectifier type must be one of: {options}",
+    "rect.too_low": "the secondary voltage is below the diode drops",
+    "rect.title": "Rectifier",
+    "rect.type": "Type",
+    "rect.kind.bridge": "full-wave bridge",
+    "rect.kind.center": "full-wave center-tap",
+    "rect.kind.half": "half-wave",
+    "rect.vpeak": "Peak DC (no load)",
+    "rect.piv": "Diode reverse voltage (PIV)",
+    "rect.ripple_freq": "Ripple frequency",
+    "rect.c": "Capacitor",
+    "rect.ripple": "Ripple (p-p)",
+    "rect.cap_voltage": "Capacitor voltage rating",
+    "rect.ratio": "Turns ratio",
+    "rect.diode_i": "Current per diode",
+    "rect.hint": "Add -i and --ripple (or --c) to size the reservoir capacitor.",
+    "rect.note": "The capacitor ripple current is high; choose a low-ESR type rated for it.",
+
+    # AC power
+    "ac.help": (
+        "Single- or three-phase AC power, and power factor correction.\n\n"
+        "P = V·I·cosφ (1-phase)   P = √3·V·I·cosφ (3-phase, V line-to-line)\n\n"
+        "Examples:\n"
+        "  elektro acpower --v 230 --i 10 --pf 0.8\n"
+        "  elektro acpower --v 400 --p 15k --pf 0.82 --phases 3\n"
+        "  elektro acpower --i 10 --pf 0.75 --target-pf 0.95"
+    ),
+    "ac.opt.v": "Voltage (V RMS; line-to-line for 3-phase)",
+    "ac.opt.i": "Current (A RMS)",
+    "ac.opt.p": "Active power (W) — computes the current",
+    "ac.opt.pf": "Power factor cosφ",
+    "ac.opt.phases": "Number of phases: 1 or 3",
+    "ac.opt.target": "Target power factor — computes the correction capacitor",
+    "ac.bad_phases": "phases must be 1 or 3",
+    "ac.bad_pf": "the voltage must be positive and 0 < cosφ ≤ 1",
+    "ac.bad_target": "the target power factor must be above the current one and at most 1",
+    "ac.need": "give --i or --p",
+    "ac.title": "AC Power",
+    "ac.system": "System",
+    "ac.single": "single-phase",
+    "ac.three": "three-phase",
+    "ac.current": "Current",
+    "ac.p": "Active power P",
+    "ac.q": "Reactive power Q",
+    "ac.s": "Apparent power S",
+    "ac.qc": "Compensation Qc",
+    "ac.cap": "Correction capacitor",
+    "ac.cap_delta": "Capacitor per phase (Δ)",
+    "ac.new_current": "Current after correction",
+    "ac.three_note": "For a star-connected capacitor bank multiply the capacitance by 3.",
+
+    # star-delta
+    "sd.help": (
+        "Star (Y) ↔ delta (Δ) conversion of three resistors/impedances.\n\n"
+        "Examples:\n"
+        "  elektro stardelta delta 10 20 30     (Rab Rbc Rca → Ra Rb Rc)\n"
+        "  elektro stardelta star 5 10 15       (Ra Rb Rc → Rab Rbc Rca)"
+    ),
+    "sd.arg.mode": "What you give: delta or star",
+    "sd.arg.values": "Three values: Rab Rbc Rca (delta) or Ra Rb Rc (star)",
+    "sd.bad": "use: stardelta delta|star R1 R2 R3",
+    "sd.note": "Ra is the resistor on node A, Rab the one between A and B.",
+
+    # coil
+    "coil.help": (
+        "Single-layer air-core coil (Wheeler formula).\n\n"
+        "Examples:\n"
+        "  elektro coil --l 1u --d 10               (turns for 1 µH on a 10 mm form)\n"
+        "  elektro coil --l 330n --d 6 --wire 0.8\n"
+        "  elektro coil --n 12 --d 8 --length 15"
+    ),
+    "coil.opt.l": "Target inductance (H), e.g. 1u",
+    "coil.opt.n": "Number of turns — computes L",
+    "coil.opt.d": "Coil form diameter (mm)",
+    "coil.opt.wire": "Wire diameter (mm)",
+    "coil.opt.length": "Winding length (mm); default: close-wound",
+    "coil.need": "give either --l or --n",
+    "coil.title": "Air-core Coil",
+    "coil.turns": "Turns",
+    "coil.inductance": "Inductance",
+    "coil.length": "Winding length",
+    "coil.mean_d": "Mean diameter",
+    "coil.wire_len": "Wire length",
+    "coil.short": "The coil is very short compared to its diameter; the formula is less accurate.",
+    "coil.note": "Wheeler's formula is ~1% accurate for length > 0.8 × radius. Leave extra wire for the leads.",
+
+    # crystal
+    "xtal.help": (
+        "Load capacitors for a crystal oscillator (Pierce).\n\n"
+        "C1 = C2 = 2 · (CL − Cstray)\n\n"
+        "Examples:\n"
+        "  elektro crystal --cl 12p\n"
+        "  elektro crystal --cl 18p --cstray 3p\n"
+        "  elektro crystal --c 22p                  (which CL do 22 pF give?)"
+    ),
+    "xtal.opt.cl": "Load capacitance from the crystal datasheet (F)",
+    "xtal.opt.cstray": "Stray capacitance of pins and traces (F), typically 2-5p",
+    "xtal.opt.c": "Existing capacitor value — computes CL",
+    "xtal.need": "give either --cl or --c",
+    "xtal.too_small": "CL is smaller than the stray capacitance; no capacitors needed (or check Cstray)",
+    "xtal.title": "Crystal Load Capacitors",
+    "xtal.standard": "Standard (E12)",
+    "xtal.note": "Too much capacitance lowers the frequency and can stop the oscillator.",
+
+    # plot
+    "plot.opt": "Save a graph: .svg (built in), .png / .pdf (needs matplotlib)",
+    "plot.saved": "Graph saved: {path}",
+    "plot.bad_suffix": "the graph file must end in .svg, .png or .pdf",
+    "plot.need_mpl": "PNG/PDF needs matplotlib: {pip}   (or use .svg)",
+    "plot.freq": "Frequency",
+    "plot.time": "Time",
+    "plot.voltage": "Voltage (V)",
+    "plot.current": "Current (A)",
+    "plot.metavar": "FILE",
+
+    # calc
+    "calc.var_not_number": "variable '{name}' is not a number",
+
+    # variables
+    "vars.help": (
+        "List saved variables.\n\n"
+        "Variables are used as @name in any command:\n"
+        "  elektro set vin 12\n"
+        "  elektro ohm -v @vin -r 1k\n"
+        "  elektro calc \"vin / 2\"\n\n"
+        "--local stores them in ./.elektro.json (per project, found in parent folders too)."
+    ),
+    "vars.set.help": "Save a variable: elektro set NAME VALUE (use as @NAME).",
+    "vars.unset.help": "Delete a variable.",
+    "vars.arg.name": "Variable name (letters, digits, _)",
+    "vars.arg.value": "Value, e.g. 12, 4k7, 100n",
+    "vars.opt.local": "Save in ./.elektro.json for this project",
+    "vars.bad_name": "invalid variable name '{name}'",
+    "vars.unknown": "unknown variable @{name} (see: elektro vars)",
+    "vars.removed": "removed",
+    "vars.empty": "No variables yet. Example: elektro set vin 12",
+    "vars.col.name": "Name",
+    "vars.col.value": "Value",
+    "vars.col.scope": "Scope",
+    "vars.global": "global",
+    "vars.local": "project",
+    "vars.overridden": "overridden",
+
+    # history
+    "hist.help": (
+        "Calculation history.\n\n"
+        "Examples:\n"
+        "  elektro history\n"
+        "  elektro history -s filter\n"
+        "  elektro history --run 12\n"
+        "  elektro history --clear"
+    ),
+    "hist.opt.n": "How many entries to show",
+    "hist.opt.search": "Only entries containing this text",
+    "hist.opt.run": "Run the entry with this number again",
+    "hist.opt.clear": "Delete the whole history",
+    "hist.bad_id": "no entry with this number (1 … {max})",
+    "hist.cleared": "History cleared.",
+    "hist.empty": "The history is empty.",
+    "hist.col.command": "Command",
+    "hist.rerun": "Run again: elektro history --run NUMBER",
+
+    # shell
+    "shell.help": (
+        "Interactive mode: type commands without 'elektro'.\n\n"
+        "Tab completes commands, ↑/↓ browse previous lines.\n"
+        "Built-ins: help, clear, exit"
+    ),
+    "shell.welcome": "interactive mode. Type 'help' for commands, 'exit' to leave.",
+})

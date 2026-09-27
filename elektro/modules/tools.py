@@ -14,7 +14,8 @@ from rich.table import Table
 from elektro.i18n import t
 from elektro.modules.passive import parallel_sum
 from elektro.modules.wiring import area_to_awg, awg_diameter
-from elektro.ui import console, emit, fail, json_mode, print_json
+from elektro.state import all_vars
+from elektro.ui import cli_parser, console, emit, fail, json_mode, print_json
 from elektro.units import format_si, parse_value
 
 # --- Hesap makinesi ----------------------------------------------------------------------
@@ -64,6 +65,12 @@ def _eval(node):
     if isinstance(node, ast.Name):
         if node.id in _CONSTS:
             return _CONSTS[node.id]
+        variables = all_vars()          # `elektro set vin 12` ile tanımlananlar
+        if node.id in variables:
+            try:
+                return parse_value(variables[node.id])
+            except ValueError:
+                raise ValueError(t("calc.var_not_number", name=node.id))
         raise ValueError(t("calc.unknown_name", name=node.id))
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and not node.keywords:
         if node.func.id not in _FUNCS:
@@ -149,7 +156,7 @@ UNIT_LIST = "c f k · m cm mm um in mil ft · db pratio vratio · awg mm2 oz · 
 
 
 def unit(
-    value: float = typer.Argument(..., parser=parse_value, metavar=t("ui.metavar.value"), help=t("unit.arg.value")),
+    value: float = typer.Argument(..., parser=cli_parser(parse_value), metavar=t("ui.metavar.value"), help=t("unit.arg.value")),
     src: str = typer.Argument(..., help=t("unit.arg.src", units=UNIT_LIST)),
     dst: Optional[str] = typer.Argument(None, help=t("unit.arg.dst")),
 ):

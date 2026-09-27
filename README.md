@@ -68,6 +68,19 @@ Run `elektro` for the command menu, `elektro COMMAND --help` for details,
 Every command accepts `--json` for machine-readable output:
 `elektro ohm -v 12 -r 1k --json`
 
+### Interactive mode, variables, history
+
+```bash
+elektro shell                        # type commands without "elektro"; Tab completes, ↑ recalls
+elektro set vin 12                   # save a value …
+elektro ohm -v @vin -r 1k            # … and use it as @vin in any command
+elektro set rload 4k7 --local        # per project (./.elektro.json)
+elektro calc "vin / 2"               # variables also work by name in calc
+elektro vars                         # list variables
+elektro history                      # previous calculations
+elektro history --run 3              # run one again
+```
+
 ### Basics
 
 ```bash
@@ -88,6 +101,12 @@ elektro logic convert 0xFF           # decimal/hex/binary/octal
 elektro logic convert --bits 8 -- -5 # two's complement
 elektro logic truth xor
 elektro logic expr "A & B | ~C"      # truth table of a boolean expression
+elektro logic simplify "A&B | A&~B"  # minimal SOP + Karnaugh map
+elektro logic simplify -m 1,3,7,11,15 -d 0,2,5
+
+elektro opamp noninv --gain 11       # standard Rf/Rg pairs
+elektro opamp inv --rf 47k --rin 4k7 --vin 0.5 --gbw 1M
+elektro opamp diff --gain 5
 
 elektro switch bjt --ic 500m -v 3.3  # base resistor for an NPN switch
 elektro switch mosfet -v 10 --qg 40n -f 100k   # gate drive and losses
@@ -107,6 +126,8 @@ elektro divider --vin 5 --vout 3.3           # best E24 R1/R2 pairs
 elektro led --vs 12 --vf 3.1 -i 15m -n 3     # LED resistor + power rating
 elektro eseries 4k8                          # nearest standard values (E3-E192)
 elektro cap 104                              # capacitor code ↔ value
+elektro coil --l 1u --d 10                   # air-core coil turns (Wheeler)
+elektro crystal --cl 12p                     # crystal load capacitors
 ```
 
 ### Power & wiring
@@ -119,6 +140,9 @@ elektro battery 1200 --active 45m --active-time 2 --sleep 20u --sleep-time 58
 elektro thermal -p 5 --rth-jc 3 --ta 50      # required heatsink
 elektro wire --awg 22 -l 3 -i 2              # AWG ↔ mm², voltage drop
 elektro trace -i 3                           # PCB trace width (IPC-2221)
+elektro rectifier --vac 12 -i 1 --ripple 1   # bridge rectifier + reservoir capacitor
+elektro acpower --v 400 --p 15k --pf 0.82 --phases 3 --target-pf 0.95
+elektro stardelta delta 10 20 30             # Δ → Y conversion
 ```
 
 ### Filters
@@ -131,7 +155,12 @@ elektro filter rl --r 1k --l 10m
 elektro filter lc --f 433.92M --c 10p
 elektro filter rlc --r 10 --l 1m --c 100n
 elektro filter notch --r 1k --l 1.013 --c 10u  # 50 Hz
+elektro filter rc --r 1k --c 100n --plot bode.svg   # save a Bode plot
+elektro charge --r 10k --c 100u --v 5 --plot charge.svg
 ```
+
+Graphs are written as SVG without any extra dependency. For `.png` / `.pdf` install matplotlib
+into elektro's environment: `~/.local/share/elektro/venv/bin/pip install matplotlib`.
 
 ### RF
 
