@@ -25,9 +25,10 @@ from elektro import REPO_URL, __version__, state
 from elektro.i18n import (LANGUAGES, config_path, get_language, normalize, save_language,
                           set_language, t)
 from elektro.modules import datasheet as datasheet_mod
-from elektro.modules import (analog, digital, embedded, filters, ohm, opamp, passive, power, resistor,
-                             rf, timer555, tools, wiring)
-from elektro.ui import console, err_console, fail, json_mode, print_json, set_json
+from elektro.modules import (analog, digital, embedded, filters, installation, machines, ohm, opamp, passive,
+                             pinout, power, resistor, rf, signal, timer555, tools, wiring)
+from elektro.ui import (console, err_console, fail, finish_output, json_mode, print_json, set_command,
+                        set_json, set_report)
 
 
 def _localize_typer() -> None:
@@ -63,8 +64,8 @@ app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 
-BASIC, PASSIVE, POWER, SIGNAL, EMBEDDED, TOOLS = (
-    t("panel.basic"), t("panel.passive"), t("panel.power"), t("panel.signal"),
+BASIC, PASSIVE, POWER, INSTALL, SIGNAL, EMBEDDED, TOOLS = (
+    t("panel.basic"), t("panel.passive"), t("panel.power"), t("panel.install"), t("panel.signal"),
     t("panel.embedded"), t("panel.tools"))
 
 app.command(rich_help_panel=BASIC, help=t("ohm.help"))(ohm.ohm)
@@ -93,8 +94,16 @@ app.command(rich_help_panel=POWER, help=t("sd.help"))(power.stardelta)
 app.command(rich_help_panel=POWER, help=t("wire.help"))(wiring.wire)
 app.command(rich_help_panel=POWER, help=t("trace.help"))(wiring.trace)
 
+app.command(rich_help_panel=INSTALL, help=t("cable.help"))(installation.cable)
+app.command(rich_help_panel=INSTALL, help=t("brk.help"))(installation.breaker)
+app.command(rich_help_panel=INSTALL, help=t("sc.help"))(installation.shortcircuit)
+app.command(rich_help_panel=INSTALL, help=t("tr.help"))(machines.transformer)
+app.command(rich_help_panel=INSTALL, help=t("mot.help"))(machines.motor)
+
 app.add_typer(filters.app, name="filter", rich_help_panel=SIGNAL)
 app.add_typer(rf.app, name="rf", rich_help_panel=SIGNAL)
+app.command(rich_help_panel=SIGNAL, help=t("wave.help"))(signal.wave)
+app.command("fft", rich_help_panel=SIGNAL, help=t("fft.help"))(signal.fft_cmd)
 
 app.command(rich_help_panel=EMBEDDED, help=t("uart.help"))(embedded.uart)
 app.command(rich_help_panel=EMBEDDED, help=t("pwm.help"))(embedded.pwm)
@@ -103,6 +112,7 @@ app.command(rich_help_panel=EMBEDDED, help=t("i2c.help"))(embedded.i2c)
 app.command(rich_help_panel=EMBEDDED, help=t("crc.help"))(embedded.crc)
 
 app.command(rich_help_panel=TOOLS, help=t("ds.help"))(datasheet_mod.datasheet)
+app.command(rich_help_panel=TOOLS, help=t("pin.help"))(pinout.pinout)
 app.command(rich_help_panel=TOOLS, help=t("calc.help"))(tools.calc)
 app.command(rich_help_panel=TOOLS, help=t("unit.help"))(tools.unit)
 
@@ -136,8 +146,17 @@ MENU = [
         ("acpower", "menu.acpower", "elektro acpower --i 10 --pf 0.8 --target-pf 0.95"),
     ],
     [
+        ("cable", "menu.cable", "elektro cable -p 9k --phases 3 -l 40"),
+        ("breaker", "menu.breaker", "elektro breaker -i 14 --iz 21 --mm2 2.5 -l 30"),
+        ("shortcircuit", "menu.shortcircuit", "elektro shortcircuit --kva 630 --mm2 95 -l 50"),
+        ("transformer", "menu.transformer", "elektro transformer --v1 230 --v2 12 --va 50"),
+        ("motor", "menu.motor", "elektro motor -p 7.5k --rpm 1450"),
+    ],
+    [
         ("filter", "menu.filter", "elektro filter rc --fc 1k --c 10n"),
         ("rf", "menu.rf", "elektro rf lora --sf 9 -p 20"),
+        ("wave", "menu.wave", "elektro wave pwm --vp 5 -d 25"),
+        ("fft", "menu.fft", "elektro fft scope.csv --plot fft.svg"),
     ],
     [
         ("uart", "menu.uart", "elektro uart -c 16M -b 115200"),
@@ -150,9 +169,11 @@ MENU = [
         ("shell", "menu.shell", "elektro shell"),
         ("set / vars", "menu.vars", "elektro set vin 12  →  -v @vin"),
         ("history", "menu.history", "elektro history"),
-        ("calc", "menu.calc", 'elektro calc "12 / (4k7 + 1k)"'),
+        ("calc", "menu.calc", 'elektro calc "230∠0 / (10 + j5)"'),
         ("unit", "menu.unit", "elektro unit 25 c"),
         ("datasheet", "menu.datasheet", "elektro datasheet lm358"),
+        ("pinout", "menu.pinout", "elektro pinout ne555"),
+        ("--md / --report", "menu.report", "elektro ohm -v 12 -r 1k --report lab.md"),
         ("helpall", "menu.helpall", "elektro helpall"),
         ("language", "menu.language", "elektro language en"),
         ("update", "menu.update", "elektro update"),
@@ -191,12 +212,24 @@ def main(
     lang: Optional[str] = typer.Option(None, "--lang", metavar="en|tr|de|ru",
                                        help=t("cli.opt.lang")),
     json_out: bool = typer.Option(False, "--json", help=t("cli.opt.json")),
+    md: bool = typer.Option(False, "--md", help=t("cli.opt.md")),
+    latex: bool = typer.Option(False, "--latex", help=t("cli.opt.latex")),
+    report: Optional[Path] = typer.Option(None, "--report", metavar=t("plot.metavar"), help=t("cli.opt.report")),
+    copy: bool = typer.Option(False, "--copy", help=t("cli.opt.copy")),
 ):
     # Dil, yardım metinleri üretilmeden önce elektro.i18n tarafından argv'den okunur;
     # burada yalnızca geçerliliği kontrol edilir.
     if lang is not None and normalize(lang) is None:
         fail(t("lang.unknown", code=lang, options=", ".join(LANGUAGES)))
-    set_json(json_out)          # her çağrıda sıfırdan: kabukta bir önceki komuttan kalmasın
+    if md and latex or json_out and (md or latex or report):
+        fail(t("report.conflict"))
+    # her çağrıda sıfırdan: kabukta bir önceki komuttan kalmasın
+    set_json(json_out)
+    fmt = "md" if md else "latex" if latex else None
+    if report is not None and fmt is None:
+        fmt = "latex" if report.suffix.lower() in (".tex", ".latex") else "md"
+    set_report(fmt, to_stdout=md or latex, file=report, copy=copy)
+    ctx.call_on_close(finish_output)
     if ctx.invoked_subcommand is None:
         show_menu()
 
@@ -224,6 +257,25 @@ def _recordable(args) -> bool:
     return bool(words) and words[0] not in NOT_RECORDED and not {"-h", "--help"} & set(args)
 
 
+ROOT_FLAGS = ("--json", "--md", "--latex", "--copy")
+
+
+def _hoist_root_options(args) -> list:
+    """--json, --md, --report X … komutun sonunda da yazılabilsin: kök seçeneği olarak başa alınır."""
+    front, rest, i = [], [], 0
+    while i < len(args):
+        a = args[i]
+        if a in ROOT_FLAGS or a.startswith("--report="):
+            front.append(a)
+        elif a == "--report" and i + 1 < len(args):
+            front += args[i:i + 2]
+            i += 1
+        else:
+            rest.append(a)
+        i += 1
+    return front + rest
+
+
 def execute(args, record: bool = True) -> int:
     """Bir komut satırını çalıştırır: @değişkenleri açar, --json'u işler, geçmişe yazar.
 
@@ -239,13 +291,14 @@ def execute(args, record: bool = True) -> int:
         head, tail = expanded[:cut], expanded[cut:]
     else:
         head, tail = expanded, []
-    if "--json" in head:          # komutun sonunda da yazılabilsin: kök seçeneği olarak başa al
-        head = ["--json"] + [a for a in head if a != "--json"]
+    set_command(expanded)
     try:
-        app(args=head + tail, prog_name="elektro")
+        app(args=_hoist_root_options(head) + tail, prog_name="elektro")
         code = 0
     except SystemExit as e:
         code = e.code if isinstance(e.code, int) else (0 if e.code is None else 1)
+    finally:
+        set_command(None)
     clean = _strip_global(args)
     if code == 0 and record and _recordable(clean):
         state.add_history(clean)

@@ -1301,3 +1301,343 @@ MESSAGES.update({
     ),
     "shell.welcome": "interactive mode. Type 'help' for commands, 'exit' to leave.",
 })
+
+# --- 0.6 ---------------------------------------------------------------------------------
+MESSAGES.update({
+    # report output
+    "cli.opt.md": "Print the result as Markdown (tables for notes and reports)",
+    "cli.opt.latex": "Print the result as LaTeX",
+    "cli.opt.report": "Append the result to a report file (.md or .tex)",
+    "cli.opt.copy": "Copy the output to the clipboard",
+    "report.conflict": "--md, --latex/--report and --json cannot be combined",
+    "report.quantity": "Quantity",
+    "report.value": "Value",
+    "report.appended": "Added to report: {path}",
+    "report.copied": "Copied to the clipboard.",
+    "report.no_clipboard": "no clipboard tool found (install wl-clipboard or xclip)",
+
+    # calc: complex numbers
+    "calc.opt.freq": "Frequency (Hz) — shows a complex impedance as R + L or R + C",
+    "calc.need_real": "{name}() needs a real number",
+    "calc.rect": "Rectangular",
+    "calc.polar": "Polar",
+    "calc.mag": "Magnitude",
+    "calc.angle": "Angle",
+    "calc.eq_r": "Series R @ {f}",
+    "calc.eq_l": "Series L",
+    "calc.eq_c": "Series C",
+
+    "calc.help": (
+        "Calculator that understands engineering notation, units and complex numbers.\n\n"
+        "Operators: + − * / ^ ( )  ||  (parallel)   Functions: sqrt log ln exp sin cos tan db dbp par\n"
+        "Complex: j, 3+j4, 10∠30 (degrees), polar(r, deg), re im abs arg conj\n"
+        "Impedance: zl(L, f) = jωL, zc(C, f) = 1/(jωC).  Constants: pi e c\n\n"
+        "Examples:\n"
+        "  elektro calc \"12V / (4k7 + 1k)\"\n"
+        "  elektro calc \"par(1k, 2k2, 4k7)\" -u Ω\n"
+        "  elektro calc \"230∠0 / (10 + zl(100m, 50))\" -u A\n"
+        "  elektro calc \"100 + zl(10m, 1k) || zc(1u, 1k)\" -u Ω -f 1k"
+    ),
+
+    # panels / menu
+    "panel.install": "Installation & machines",
+    "menu.cable": "Cable cross-section",
+    "menu.breaker": "Circuit breaker / fuse",
+    "menu.shortcircuit": "Short-circuit current",
+    "menu.transformer": "Transformer",
+    "menu.motor": "Induction motor",
+    "menu.wave": "RMS, average, crest factor",
+    "menu.fft": "Spectrum of a CSV (THD)",
+    "menu.pinout": "IC / transistor pinout",
+    "menu.report": "Markdown / LaTeX report",
+
+    # cable
+    "cable.help": (
+        "Select a low-voltage cable cross-section by current capacity and voltage drop (IEC 60364-5-52).\n\n"
+        "Installation methods: A1 (in conduit in an insulated wall), B1 (in conduit on/in a wall),\n"
+        "C (clipped direct), D (in the ground).\n\n"
+        "Examples:\n"
+        "  elektro cable -i 16 -l 25\n"
+        "  elektro cable -p 9k --phases 3 --pf 0.85 -l 40 --method C\n"
+        "  elektro cable -i 120 --phases 3 -l 80 --material al --insulation xlpe --group 3\n"
+        "  elektro cable -i 20 -l 30 --mm2 2.5          (check a given section)"
+    ),
+    "cable.opt.current": "Load current Ib (A)",
+    "cable.opt.power": "Load power (W) — computes the current",
+    "cable.opt.v": "Voltage (V); default 230 (1-phase) / 400 (3-phase)",
+    "cable.opt.length": "Cable length one way, e.g. 25 (m), 120m",
+    "cable.opt.drop": "Allowed voltage drop (%)",
+    "cable.opt.method": "Installation method: A1, B1, C, D",
+    "cable.opt.material": "Conductor: cu or al",
+    "cable.opt.insulation": "Insulation: pvc (70 °C) or xlpe (90 °C)",
+    "cable.opt.ta": "Ambient temperature (°C); default 30 in air, 20 in the ground",
+    "cable.opt.group": "Number of circuits run together (grouping factor)",
+    "cable.opt.mm2": "Check this cross-section (mm²) instead of selecting one",
+    "cable.bad_choice": "invalid value '{value}' (options: {options})",
+    "cable.too_hot": "the ambient temperature must be below {tmax} °C",
+    "cable.need": "give the current (-i) or the power (-p)",
+    "cable.bad_section": "not a standard cross-section (options: {options})",
+    "cable.none": "even 300 mm² is not enough; use parallel cables or a higher voltage",
+    "cable.title": "Cable Selection",
+    "cable.system": "System",
+    "cable.ib": "Load current Ib",
+    "cable.section": "Cross-section",
+    "cable.iz": "Current capacity Iz",
+    "cable.drop": "Voltage drop",
+    "cable.loss": "Cable loss",
+    "cable.temp": "Conductor temperature",
+    "cable.by_ampacity": "By capacity alone",
+    "cable.mcb": "Suitable MCB (Ib ≤ In ≤ Iz)",
+    "cable.no_mcb": "none — choose a larger cable",
+    "cable.not_ok": "this cross-section does not meet the requirements",
+    "cable.note1": "Capacities: IEC 60364-5-52 (copper/PVC); XLPE and aluminium use approximate factors.",
+    "cable.note2": "Typical limits: 3% lighting, 5% other loads (TR regulation: 1.5% lighting, 3% power).",
+
+    # breaker
+    "brk.help": (
+        "Select a circuit breaker (MCB) or gG fuse and check the cable protection.\n\n"
+        "Conditions: Ib ≤ In ≤ Iz and I2 ≤ 1.45·Iz.  Fault disconnection: Zs ≤ U0 / Ia.\n\n"
+        "Examples:\n"
+        "  elektro breaker -i 14 --iz 21\n"
+        "  elektro breaker -i 14 --iz 21 --curve B --mm2 2.5 -l 30\n"
+        "  elektro breaker -i 40 --iz 50 --type fuse"
+    ),
+    "brk.opt.current": "Load current Ib (A)",
+    "brk.opt.iz": "Current capacity of the cable Iz (A) — see: elektro cable",
+    "brk.opt.type": "Device: mcb or fuse (gG)",
+    "brk.opt.curve": "MCB curve: B, C or D",
+    "brk.opt.zs": "Measured earth fault loop impedance Zs (Ω)",
+    "brk.opt.mm2": "Cable cross-section (mm²) — computes Zs and the maximum length",
+    "brk.opt.length": "Cable length (m) — computes Zs",
+    "brk.opt.ze": "External loop impedance Ze (Ω) for the Zs calculation",
+    "brk.opt.u0": "Phase-to-earth voltage U0 (V)",
+    "brk.too_big": "the current is above the largest standard rating",
+    "brk.title": "Protection Device",
+    "brk.device": "Device",
+    "brk.magnetic": "Instantaneous trip",
+    "brk.zs_max": "Max. loop impedance Zs",
+    "brk.zs_calc": "Loop impedance Zs (calc.)",
+    "brk.ik_min": "Earth fault current",
+    "brk.lmax": "Max. length ({mm2} mm²)",
+    "brk.not_ok": "the cable is not protected; use at most {max} A or a larger cable",
+    "brk.no_device": "no standard device protects this cable at this load current",
+    "brk.note.curve": "B: resistive loads, lighting · C: general, motors · D: transformers, high inrush.",
+    "brk.note.zs": "Zs from the cable uses Ze = {ze} Ω and a PE conductor equal to the phase conductor.",
+    "brk.note.fuse": "gG fuse: I2 = 1.6·In (In ≥ 16 A); check the disconnection time on the fuse curve.",
+
+    # short circuit
+    "sc.help": (
+        "Short-circuit current of a low-voltage network fed by a transformer (IEC 60909, simplified).\n\n"
+        "Examples:\n"
+        "  elektro shortcircuit --kva 630\n"
+        "  elektro shortcircuit --kva 1000 --uk 6 --pk 10.5k --mm2 240 -l 60 --parallel 2\n"
+        "  elektro shortcircuit --kva 400 --mm2 16 -l 80 --time 0.4"
+    ),
+    "sc.opt.kva": "Transformer rating (kVA)",
+    "sc.opt.uk": "Short-circuit voltage uk (%); default 4 (≤ 630 kVA) or 6",
+    "sc.opt.v": "Secondary line voltage (V)",
+    "sc.opt.pk": "Copper (load) losses Pk (W); default ur = 1%",
+    "sc.opt.sk": "Upstream fault level Sk'' (MVA); 0 = infinite",
+    "sc.opt.mm2": "Cable cross-section to the fault point (mm²)",
+    "sc.opt.length": "Cable length to the fault point (m)",
+    "sc.opt.parallel": "Number of parallel cables",
+    "sc.opt.time": "Disconnection time (s) — checks the cable's thermal withstand",
+    "sc.need_cable": "give both --mm2 and --length",
+    "sc.bad_pk": "the copper losses are too high for this uk",
+    "sc.title": "Short-circuit Current",
+    "sc.trafo": "Transformer",
+    "sc.in": "Rated current",
+    "sc.zq": "Network Zq ({sk} MVA)",
+    "sc.zc": "Cable Zc ({cable})",
+    "sc.icu": "Breaking capacity",
+    "sc.smin": "Min. section ({t}, k = {k})",
+    "sc.note1": "Ik3 max with c = 1.05 and conductors at 20 °C; Ik1 min (phase–neutral) with c = 0.95.",
+    "sc.note2": "Use Ik3 for the breaking capacity and Ik1 to check that the protection trips.",
+
+    # transformer
+    "tr.help": (
+        "Transformer: turns ratio, currents and winding data of a small mains transformer.\n\n"
+        "Examples:\n"
+        "  elektro transformer --v1 230 --v2 12\n"
+        "  elektro transformer --v1 230 --v2 24 --va 100\n"
+        "  elektro transformer --v1 34.5k --v2 400 --va 630k --phases 3"
+    ),
+    "tr.opt.v1": "Primary voltage (V)",
+    "tr.opt.v2": "Secondary voltage (V, at load)",
+    "tr.opt.va": "Rated power (VA), e.g. 50, 1k, 630k",
+    "tr.opt.b": "Peak flux density (T): 1.0–1.4 for silicon steel",
+    "tr.opt.j": "Current density (A/mm²): 2–3.5",
+    "tr.opt.eff": "Efficiency",
+    "tr.opt.area": "Core cross-section (cm²); default ≈ √P",
+    "tr.opt.reg": "Extra secondary turns for the load voltage drop (%)",
+    "tr.title": "Transformer",
+    "tr.ratio": "Turns ratio",
+    "tr.kind": "Type",
+    "tr.step_down": "step-down",
+    "tr.step_up": "step-up",
+    "tr.hint": "Add --va for the currents and winding data.",
+    "tr.power": "Power",
+    "tr.three_note": "Currents are line currents. Winding design is only computed for single-phase transformers.",
+    "tr.area": "Core cross-section",
+    "tr.tpv": "Turns per volt",
+    "tr.wire1": "Primary wire",
+    "tr.wire2": "Secondary wire",
+    "tr.big": "Rules of thumb are meant for small transformers (up to a few hundred VA).",
+    "tr.note1": "Computed with B = {b} T and J = {j} A/mm²; the window must hold both windings.",
+    "tr.note2": "N/V = 1 / (4.44 · f · B · A).  Too high B overheats the core and draws a large no-load current.",
+
+    # motor
+    "mot.help": (
+        "Induction motor: current, torque, slip, losses and starting current.\n\n"
+        "Examples:\n"
+        "  elektro motor -p 7.5k --rpm 1450\n"
+        "  elektro motor -p 15k --pf 0.86 --eff 0.92 --poles 2 --rpm 2940\n"
+        "  elektro motor -p 750 --v 230 --phases 1 --pf 0.75 --eff 0.7"
+    ),
+    "mot.opt.power": "Rated output (shaft) power (W), e.g. 7.5k",
+    "mot.opt.v": "Voltage (V; line-to-line for 3-phase)",
+    "mot.opt.eff": "Efficiency",
+    "mot.opt.poles": "Number of poles (2, 4, 6 …)",
+    "mot.opt.rpm": "Rated speed from the nameplate (rpm)",
+    "mot.opt.start": "Starting current / rated current (direct-on-line)",
+    "mot.bad_poles": "the number of poles must be even and at least 2",
+    "mot.bad_rpm": "the speed must be between 0 and the synchronous speed ({ns} rpm)",
+    "mot.title": "Induction Motor",
+    "mot.power": "Output power",
+    "mot.ns": "Synchronous speed",
+    "mot.poles": "poles",
+    "mot.speed": "Rated speed",
+    "mot.assumed": "assumed 4% slip",
+    "mot.slip": "Slip",
+    "mot.torque": "Rated torque",
+    "mot.pin": "Input power",
+    "mot.losses": "Losses",
+    "mot.current": "Rated current",
+    "mot.start_dol": "Starting current (DOL)",
+    "mot.start_yd": "Starting current (Y-Δ)",
+    "mot.note1": "Size the cable for the rated current and the protection for the starting current (curve C/D).",
+    "mot.note2": "Star-delta starting reduces the starting current and torque to 1/3.",
+    "mot.note_single": "Single-phase motors need a run (and often a start) capacitor.",
+
+    # wave
+    "wave.help": (
+        "RMS, average, rectified average, crest and form factor of a waveform.\n\n"
+        "Shapes: sine, square, triangle, sawtooth, pwm (0…Vp), halfwave, fullwave (rectified sine)\n\n"
+        "Examples:\n"
+        "  elektro wave sine --vp 325\n"
+        "  elektro wave sine --rms 230\n"
+        "  elektro wave pwm --vp 12 -d 25 -r 10\n"
+        "  elektro wave square --vpp 5 --offset 2.5 -f 1k --plot square.svg"
+    ),
+    "wave.arg": "Waveform",
+    "wave.opt.vp": "Peak amplitude",
+    "wave.opt.vpp": "Peak-to-peak value",
+    "wave.opt.rms": "RMS value (without offset) — computes the amplitude",
+    "wave.opt.offset": "DC offset",
+    "wave.opt.duty": "Duty cycle (%) for pwm and square",
+    "wave.opt.freq": "Frequency (Hz) — shows the period",
+    "wave.opt.load": "Load resistance (Ω) — computes the power",
+    "wave.opt.unit": "Unit of the values (V, A …)",
+    "wave.bad_shape": "unknown waveform (options: {options})",
+    "wave.need": "give exactly one of --vp, --vpp or --rms",
+    "wave.bad": "the duty cycle must be between 0 and 100 %, frequency and load positive",
+    "wave.title": "Waveform",
+    "wave.shape": "Shape",
+    "wave.kind.sine": "sine",
+    "wave.kind.square": "square",
+    "wave.kind.triangle": "triangle",
+    "wave.kind.sawtooth": "sawtooth",
+    "wave.kind.pwm": "PWM",
+    "wave.kind.halfwave": "half-wave rectified sine",
+    "wave.kind.fullwave": "full-wave rectified sine",
+    "wave.peak": "Max / min",
+    "wave.vpp": "Peak-to-peak",
+    "wave.dc": "Average (DC)",
+    "wave.rms": "RMS (true)",
+    "wave.ac_rms": "RMS (AC only)",
+    "wave.rect": "Rectified average",
+    "wave.crest": "Crest factor",
+    "wave.form": "Form factor",
+    "wave.period": "Period",
+    "wave.t_high": "High time",
+    "wave.power": "Power in {r}",
+    "wave.note1": "RMS = √(DC² + AC_rms²).  Average-responding meters show 1.111 × rectified average.",
+    "wave.note2": "Such meters are only correct for sine waves; use a true-RMS meter for other shapes.",
+
+    # fft
+    "fft.help": (
+        "Spectrum of a sampled signal from a CSV file (oscilloscope or logger export).\n\n"
+        "Finds the fundamental, the largest peaks, THD and THD+N. The sample rate is taken from the\n"
+        "time column, an 'Increment' header (Rigol) or --rate.\n\n"
+        "Examples:\n"
+        "  elektro fft scope.csv\n"
+        "  elektro fft data.csv --column 3 --window flattop\n"
+        "  elektro fft adc.txt --rate 48k --plot spectrum.svg"
+    ),
+    "fft.arg": "CSV / text file with numeric columns",
+    "fft.opt.column": "Column of the signal (1 = first); default 2 if there is a time column",
+    "fft.opt.rate": "Sample rate (Hz) if there is no time column",
+    "fft.opt.window": "Window: {options}",
+    "fft.opt.peaks": "Number of peaks to list",
+    "fft.no_data": "no numeric data found in the file",
+    "fft.too_short": "at least 16 samples are needed",
+    "fft.bad_window": "unknown window (options: {options})",
+    "fft.bad_column": "the column must be between 1 and {n}",
+    "fft.src.rate": "--rate",
+    "fft.src.header": "file header",
+    "fft.src.time": "time column",
+    "fft.need_rate": "the sample rate is unknown; give --rate",
+    "fft.index_col": "the first column looks like a sample index (step 1); give --rate if it is not time",
+    "fft.title": "Spectrum (FFT)",
+    "fft.file": "File",
+    "fft.fs": "Sample rate",
+    "fft.samples": "Samples",
+    "fft.resolution": "Resolution",
+    "fft.fundamental": "Fundamental",
+    "fft.peaks": "Largest peaks",
+    "fft.amp": "Amplitude",
+    "fft.note": "Window: {window}. Amplitudes are peak values; dBc is relative to the fundamental.",
+
+    # pinout
+    "pin.help": (
+        "Pinout of common ICs and transistors (offline).\n\n"
+        "Examples:\n"
+        "  elektro pinout              (list of parts)\n"
+        "  elektro pinout ne555\n"
+        "  elektro pinout 74hc595\n"
+        "  elektro pinout bc547"
+    ),
+    "pin.arg": "Part name, e.g. ne555, lm358, 7805",
+    "pin.tab": "tab",
+    "pin.col.part": "Part",
+    "pin.col.package": "Package",
+    "pin.col.desc": "Description",
+    "pin.col.aliases": "Same pinout",
+    "pin.usage": "Show one: elektro pinout NAME",
+    "pin.unknown": "'{name}' is not in the list (see: elektro pinout). Try: elektro datasheet {name}",
+    "pin.note.dip": "Top view; pin 1 is next to the notch / dot, numbering runs counter-clockwise.",
+    "pin.note.front": "Front view (printed side towards you, legs down). Manufacturers differ — check the datasheet.",
+    "pin.same": "Same pinout: {parts}",
+    "pin.desc.ne555": "Timer",
+    "pin.desc.lm358": "Dual op-amp",
+    "pin.desc.ua741": "Single op-amp",
+    "pin.desc.lm386": "Audio power amplifier",
+    "pin.desc.attiny85": "8-bit AVR microcontroller",
+    "pin.desc.pc817": "Optocoupler",
+    "pin.desc.74hc00": "Quad 2-input NAND gate",
+    "pin.desc.74hc04": "Hex inverter",
+    "pin.desc.74hc595": "8-bit shift register with output latch",
+    "pin.desc.cd4017": "Decade counter / divider",
+    "pin.desc.l293d": "Dual H-bridge motor driver",
+    "pin.desc.atmega328p": "8-bit AVR microcontroller (Arduino Uno)",
+    "pin.desc.78xx": "Positive fixed regulator",
+    "pin.desc.79xx": "Negative fixed regulator",
+    "pin.desc.lm317": "Adjustable positive regulator",
+    "pin.desc.ams1117": "LDO regulator",
+    "pin.desc.irfz44n": "N-channel power MOSFET",
+    "pin.desc.bc547": "NPN transistor",
+    "pin.desc.2n2222": "NPN transistor",
+    "pin.desc.lm35": "Temperature sensor (10 mV/°C)",
+    "pin.desc.ds18b20": "1-Wire digital temperature sensor",
+    "pin.desc.tl431": "Adjustable shunt reference",
+})

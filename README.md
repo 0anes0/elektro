@@ -68,6 +68,20 @@ Run `elektro` for the command menu, `elektro COMMAND --help` for details,
 Every command accepts `--json` for machine-readable output:
 `elektro ohm -v 12 -r 1k --json`
 
+### Report output
+
+Get results as tables for homework, lab reports or notes:
+
+```bash
+elektro ohm -v 12 -r 1k --md                 # Markdown table
+elektro filter rc --r 1k --c 100n --latex    # LaTeX tabular
+elektro cable -i 16 -l 25 --report lab.md    # append to lab.md (.tex → LaTeX)
+elektro motor -p 7.5k --rpm 1450 --copy      # copy the output to the clipboard
+```
+
+With `--report` the normal output is still shown in the terminal; each command is appended
+together with its command line. Graphs saved with `--plot` are embedded in Markdown reports.
+
 ### Interactive mode, variables, history
 
 ```bash
@@ -145,6 +159,23 @@ elektro acpower --v 400 --p 15k --pf 0.82 --phases 3 --target-pf 0.95
 elektro stardelta delta 10 20 30             # Δ → Y conversion
 ```
 
+### Installation & machines
+
+```bash
+elektro cable -i 16 -l 25                    # cable size: current capacity + voltage drop
+elektro cable -p 9k --phases 3 --pf 0.85 -l 40 --method C
+elektro cable -i 120 --phases 3 -l 80 --material al --insulation xlpe --group 3
+elektro breaker -i 14 --iz 21 --curve B --mm2 2.5 -l 30   # MCB selection, Zs, max. length
+elektro breaker -i 40 --iz 50 --type fuse    # gG fuse
+elektro shortcircuit --kva 630 --mm2 95 -l 50 --time 0.4  # Ik3, ip, Ik1, breaking capacity
+elektro transformer --v1 230 --v2 12 --va 50 # ratio, currents, core area, turns, wire size
+elektro motor -p 7.5k --rpm 1450             # current, torque, slip, starting current (Y-Δ)
+```
+
+Cable capacities come from the IEC 60364-5-52 tables (installation methods A1, B1, C, D, with
+temperature and grouping correction). Results are for preliminary sizing; check them against
+your local regulations.
+
 ### Filters
 
 ```bash
@@ -158,6 +189,20 @@ elektro filter notch --r 1k --l 1.013 --c 10u  # 50 Hz
 elektro filter rc --r 1k --c 100n --plot bode.svg   # save a Bode plot
 elektro charge --r 10k --c 100u --v 5 --plot charge.svg
 ```
+
+### Signal
+
+```bash
+elektro wave sine --rms 230                  # peak, average, RMS, crest/form factor
+elektro wave pwm --vp 12 -d 25 -r 10         # DC and RMS of a PWM signal, power in a load
+elektro wave square --vpp 5 --offset 2.5 --plot square.svg
+elektro fft scope.csv                        # fundamental, harmonics, THD, THD+N
+elektro fft adc.txt --rate 48k --window flattop --plot spectrum.svg
+```
+
+`fft` reads oscilloscope CSVs (Rigol, Siglent, Tektronix), `;`-separated files with decimal
+commas and single-column raw data. The sample rate comes from the time column or the file
+header; otherwise give `--rate`.
 
 Graphs are written as SVG without any extra dependency. For `.png` / `.pdf` install matplotlib
 into elektro's environment: `~/.local/share/elektro/venv/bin/pip install matplotlib`.
@@ -193,8 +238,15 @@ elektro crc "01 03 00 00 00 0A"              # CRC-8/16/32, Modbus, checksums
 ```bash
 elektro calc "12V / (4k7 + 1k)"              # calculator with engineering notation
 elektro calc "par(1k, 2k2, 4k7)" -u Ω
+elektro calc "230∠0 / (10 + zl(100m, 50))" -u A        # complex numbers and phasors
+elektro calc "100 + zl(10m, 1k) || zc(1u, 1k)" -u Ω -f 1k  # impedance → series R + L/C
 elektro unit 25 c                            # °C/°F/K, mil/mm, dB, AWG …
+elektro pinout                               # parts with a known pinout
+elektro pinout ne555                         # IC / transistor pinout (offline)
 ```
+
+In `calc`, `j` is the imaginary unit (`3+4j`, `3+j4`), `10∠30` is polar form (degrees) and `||`
+is the parallel combination. Functions: `re im abs arg conj polar zl zc`.
 
 ### Datasheet downloader
 

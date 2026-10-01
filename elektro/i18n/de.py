@@ -1300,3 +1300,342 @@ MESSAGES.update({
     ),
     "shell.welcome": "interaktiver Modus. 'help' zeigt die Befehle, 'exit' beendet.",
 })
+
+# --- 0.6 ---------------------------------------------------------------------------------
+MESSAGES.update({
+    # Berichtsausgabe
+    "cli.opt.md": "Ergebnis als Markdown ausgeben (Tabellen für Notizen und Berichte)",
+    "cli.opt.latex": "Ergebnis als LaTeX ausgeben",
+    "cli.opt.report": "Ergebnis an eine Berichtsdatei anhängen (.md oder .tex)",
+    "cli.opt.copy": "Ausgabe in die Zwischenablage kopieren",
+    "report.conflict": "--md, --latex/--report und --json können nicht kombiniert werden",
+    "report.quantity": "Größe",
+    "report.value": "Wert",
+    "report.appended": "Zum Bericht hinzugefügt: {path}",
+    "report.copied": "In die Zwischenablage kopiert.",
+    "report.no_clipboard": "kein Zwischenablage-Werkzeug gefunden (wl-clipboard oder xclip installieren)",
+
+    # calc: komplexe Zahlen
+    "calc.opt.freq": "Frequenz (Hz) — zeigt eine komplexe Impedanz als R + L oder R + C",
+    "calc.need_real": "{name}() erwartet eine reelle Zahl",
+    "calc.rect": "Kartesisch",
+    "calc.polar": "Polar",
+    "calc.mag": "Betrag",
+    "calc.angle": "Winkel",
+    "calc.eq_r": "Serien-R @ {f}",
+    "calc.eq_l": "Serien-L",
+    "calc.eq_c": "Serien-C",
+    "calc.help": (
+        "Rechner mit technischer Schreibweise, Einheiten und komplexen Zahlen.\n\n"
+        "Operatoren: + − * / ^ ( )  ||  (parallel)   Funktionen: sqrt log ln exp sin cos tan db dbp par\n"
+        "Komplex: j, 3+j4, 10∠30 (Grad), polar(r, Grad), re im abs arg conj\n"
+        "Impedanz: zl(L, f) = jωL, zc(C, f) = 1/(jωC).  Konstanten: pi e c\n\n"
+        "Beispiele:\n"
+        "  elektro calc \"12V / (4k7 + 1k)\"\n"
+        "  elektro calc \"par(1k, 2k2, 4k7)\" -u Ω\n"
+        "  elektro calc \"230∠0 / (10 + zl(100m, 50))\" -u A\n"
+        "  elektro calc \"100 + zl(10m, 1k) || zc(1u, 1k)\" -u Ω -f 1k"
+    ),
+
+    # Gruppen / Menü
+    "panel.install": "Installation & Maschinen",
+    "menu.cable": "Kabelquerschnitt",
+    "menu.breaker": "Leitungsschutzschalter / Sicherung",
+    "menu.shortcircuit": "Kurzschlussstrom",
+    "menu.transformer": "Transformator",
+    "menu.motor": "Asynchronmotor",
+    "menu.wave": "Effektivwert, Mittelwert, Scheitelfaktor",
+    "menu.fft": "Spektrum einer CSV (THD)",
+    "menu.pinout": "Pinbelegung IC / Transistor",
+    "menu.report": "Markdown- / LaTeX-Bericht",
+
+    # Kabel
+    "cable.help": (
+        "Querschnitt eines Niederspannungskabels nach Strombelastbarkeit und Spannungsfall (IEC 60364-5-52).\n\n"
+        "Verlegearten: A1 (im Rohr in wärmedämmender Wand), B1 (im Rohr auf/in der Wand),\n"
+        "C (direkt auf der Wand), D (in Erde).\n\n"
+        "Beispiele:\n"
+        "  elektro cable -i 16 -l 25\n"
+        "  elektro cable -p 9k --phases 3 --pf 0.85 -l 40 --method C\n"
+        "  elektro cable -i 120 --phases 3 -l 80 --material al --insulation xlpe --group 3\n"
+        "  elektro cable -i 20 -l 30 --mm2 2.5          (gegebenen Querschnitt prüfen)"
+    ),
+    "cable.opt.current": "Betriebsstrom Ib (A)",
+    "cable.opt.power": "Lastleistung (W) — berechnet den Strom",
+    "cable.opt.v": "Spannung (V); Standard 230 (einphasig) / 400 (dreiphasig)",
+    "cable.opt.length": "Einfache Kabellänge, z. B. 25 (m), 120m",
+    "cable.opt.drop": "Zulässiger Spannungsfall (%)",
+    "cable.opt.method": "Verlegeart: A1, B1, C, D",
+    "cable.opt.material": "Leiter: cu oder al",
+    "cable.opt.insulation": "Isolierung: pvc (70 °C) oder xlpe (90 °C)",
+    "cable.opt.ta": "Umgebungstemperatur (°C); Standard 30 in Luft, 20 in Erde",
+    "cable.opt.group": "Anzahl gemeinsam verlegter Stromkreise (Häufungsfaktor)",
+    "cable.opt.mm2": "Diesen Querschnitt (mm²) prüfen statt auszuwählen",
+    "cable.bad_choice": "ungültiger Wert '{value}' (Optionen: {options})",
+    "cable.too_hot": "die Umgebungstemperatur muss unter {tmax} °C liegen",
+    "cable.need": "Strom (-i) oder Leistung (-p) angeben",
+    "cable.bad_section": "kein Normquerschnitt (Optionen: {options})",
+    "cable.none": "selbst 300 mm² reichen nicht; parallele Kabel oder höhere Spannung verwenden",
+    "cable.title": "Kabelauswahl",
+    "cable.system": "System",
+    "cable.ib": "Betriebsstrom Ib",
+    "cable.section": "Querschnitt",
+    "cable.iz": "Strombelastbarkeit Iz",
+    "cable.drop": "Spannungsfall",
+    "cable.loss": "Kabelverlust",
+    "cable.temp": "Leitertemperatur",
+    "cable.by_ampacity": "Nur nach Belastbarkeit",
+    "cable.mcb": "Passender LS-Schalter (Ib ≤ In ≤ Iz)",
+    "cable.no_mcb": "keiner — größeres Kabel wählen",
+    "cable.not_ok": "dieser Querschnitt erfüllt die Anforderungen nicht",
+    "cable.note1": "Belastbarkeit: IEC 60364-5-52 (Kupfer/PVC); XLPE und Aluminium mit Näherungsfaktoren.",
+    "cable.note2": "Übliche Grenzen: 3 % Beleuchtung, 5 % andere Verbraucher (DE: 3 % ab Zähler, VDE-AR-N 4100).",
+
+    # Schutzorgan
+    "brk.help": (
+        "Leitungsschutzschalter (LS) oder gG-Sicherung auswählen und den Kabelschutz prüfen.\n\n"
+        "Bedingungen: Ib ≤ In ≤ Iz und I2 ≤ 1,45·Iz.  Abschaltung im Fehlerfall: Zs ≤ U0 / Ia.\n\n"
+        "Beispiele:\n"
+        "  elektro breaker -i 14 --iz 21\n"
+        "  elektro breaker -i 14 --iz 21 --curve B --mm2 2.5 -l 30\n"
+        "  elektro breaker -i 40 --iz 50 --type fuse"
+    ),
+    "brk.opt.current": "Betriebsstrom Ib (A)",
+    "brk.opt.iz": "Strombelastbarkeit des Kabels Iz (A) — siehe: elektro cable",
+    "brk.opt.type": "Gerät: mcb oder fuse (gG)",
+    "brk.opt.curve": "Auslösecharakteristik: B, C oder D",
+    "brk.opt.zs": "Gemessene Schleifenimpedanz Zs (Ω)",
+    "brk.opt.mm2": "Kabelquerschnitt (mm²) — berechnet Zs und die maximale Länge",
+    "brk.opt.length": "Kabellänge (m) — berechnet Zs",
+    "brk.opt.ze": "Vorgelagerte Schleifenimpedanz Ze (Ω) für die Zs-Berechnung",
+    "brk.opt.u0": "Spannung Außenleiter–Erde U0 (V)",
+    "brk.too_big": "der Strom liegt über dem größten Normwert",
+    "brk.title": "Schutzorgan",
+    "brk.device": "Gerät",
+    "brk.magnetic": "Unverzögerte Auslösung",
+    "brk.zs_max": "Max. Schleifenimpedanz Zs",
+    "brk.zs_calc": "Schleifenimpedanz Zs (ber.)",
+    "brk.ik_min": "Fehlerstrom",
+    "brk.lmax": "Max. Länge ({mm2} mm²)",
+    "brk.not_ok": "das Kabel ist nicht geschützt; höchstens {max} A oder größeres Kabel verwenden",
+    "brk.no_device": "kein Normgerät schützt dieses Kabel bei diesem Betriebsstrom",
+    "brk.note.curve": "B: ohmsche Lasten, Beleuchtung · C: allgemein, Motoren · D: Trafos, hoher Einschaltstrom.",
+    "brk.note.zs": "Zs aus dem Kabel mit Ze = {ze} Ω und PE-Leiter gleich dem Außenleiter.",
+    "brk.note.fuse": "gG-Sicherung: I2 = 1,6·In (In ≥ 16 A); Abschaltzeit an der Sicherungskennlinie prüfen.",
+
+    # Kurzschluss
+    "sc.help": (
+        "Kurzschlussstrom eines transformatorgespeisten Niederspannungsnetzes (IEC 60909, vereinfacht).\n\n"
+        "Beispiele:\n"
+        "  elektro shortcircuit --kva 630\n"
+        "  elektro shortcircuit --kva 1000 --uk 6 --pk 10.5k --mm2 240 -l 60 --parallel 2\n"
+        "  elektro shortcircuit --kva 400 --mm2 16 -l 80 --time 0.4"
+    ),
+    "sc.opt.kva": "Transformatorleistung (kVA)",
+    "sc.opt.uk": "Kurzschlussspannung uk (%); Standard 4 (≤ 630 kVA) oder 6",
+    "sc.opt.v": "Sekundäre Leiterspannung (V)",
+    "sc.opt.pk": "Kupferverluste Pk (W); Standard ur = 1 %",
+    "sc.opt.sk": "Netzkurzschlussleistung Sk'' (MVA); 0 = unendlich",
+    "sc.opt.mm2": "Kabelquerschnitt bis zur Fehlerstelle (mm²)",
+    "sc.opt.length": "Kabellänge bis zur Fehlerstelle (m)",
+    "sc.opt.parallel": "Anzahl paralleler Kabel",
+    "sc.opt.time": "Abschaltzeit (s) — prüft die thermische Kurzschlussfestigkeit",
+    "sc.need_cable": "--mm2 und --length gemeinsam angeben",
+    "sc.bad_pk": "die Kupferverluste sind für dieses uk zu hoch",
+    "sc.title": "Kurzschlussstrom",
+    "sc.trafo": "Transformator",
+    "sc.in": "Bemessungsstrom",
+    "sc.zq": "Netz Zq ({sk} MVA)",
+    "sc.zc": "Kabel Zc ({cable})",
+    "sc.icu": "Schaltvermögen",
+    "sc.smin": "Min. Querschnitt ({t}, k = {k})",
+    "sc.note1": "Ik3 max mit c = 1,05 und Leitern bei 20 °C; Ik1 min (Außenleiter–N) mit c = 0,95.",
+    "sc.note2": "Ik3 für das Schaltvermögen, Ik1 zur Prüfung der Abschaltung verwenden.",
+
+    # Transformator
+    "tr.help": (
+        "Transformator: Übersetzungsverhältnis, Ströme und Wicklungsdaten eines kleinen Netztrafos.\n\n"
+        "Beispiele:\n"
+        "  elektro transformer --v1 230 --v2 12\n"
+        "  elektro transformer --v1 230 --v2 24 --va 100\n"
+        "  elektro transformer --v1 20k --v2 400 --va 630k --phases 3"
+    ),
+    "tr.opt.v1": "Primärspannung (V)",
+    "tr.opt.v2": "Sekundärspannung (V, unter Last)",
+    "tr.opt.va": "Bemessungsleistung (VA), z. B. 50, 1k, 630k",
+    "tr.opt.b": "Scheitel-Flussdichte (T): 1,0–1,4 für Elektroblech",
+    "tr.opt.j": "Stromdichte (A/mm²): 2–3,5",
+    "tr.opt.eff": "Wirkungsgrad",
+    "tr.opt.area": "Kernquerschnitt (cm²); Standard ≈ √P",
+    "tr.opt.reg": "Zusätzliche Sekundärwindungen für den Spannungsfall unter Last (%)",
+    "tr.title": "Transformator",
+    "tr.ratio": "Übersetzung",
+    "tr.kind": "Art",
+    "tr.step_down": "abwärts",
+    "tr.step_up": "aufwärts",
+    "tr.hint": "--va angeben für Ströme und Wicklungsdaten.",
+    "tr.power": "Leistung",
+    "tr.three_note": "Ströme sind Leiterströme. Die Wicklungsauslegung gibt es nur für Einphasentrafos.",
+    "tr.area": "Kernquerschnitt",
+    "tr.tpv": "Windungen pro Volt",
+    "tr.wire1": "Primärdraht",
+    "tr.wire2": "Sekundärdraht",
+    "tr.big": "Die Faustformeln gelten für kleine Trafos (bis einige hundert VA).",
+    "tr.note1": "Berechnet mit B = {b} T und J = {j} A/mm²; das Fenster muss beide Wicklungen aufnehmen.",
+    "tr.note2": "N/V = 1 / (4,44 · f · B · A).  Zu hohes B erwärmt den Kern und erhöht den Leerlaufstrom.",
+
+    # Motor
+    "mot.help": (
+        "Asynchronmotor: Strom, Drehmoment, Schlupf, Verluste und Anlaufstrom.\n\n"
+        "Beispiele:\n"
+        "  elektro motor -p 7.5k --rpm 1450\n"
+        "  elektro motor -p 15k --pf 0.86 --eff 0.92 --poles 2 --rpm 2940\n"
+        "  elektro motor -p 750 --v 230 --phases 1 --pf 0.75 --eff 0.7"
+    ),
+    "mot.opt.power": "Bemessungs-(Wellen-)leistung (W), z. B. 7.5k",
+    "mot.opt.v": "Spannung (V; Leiterspannung bei Drehstrom)",
+    "mot.opt.eff": "Wirkungsgrad",
+    "mot.opt.poles": "Polzahl (2, 4, 6 …)",
+    "mot.opt.rpm": "Bemessungsdrehzahl vom Typenschild (1/min)",
+    "mot.opt.start": "Anlaufstrom / Bemessungsstrom (Direktanlauf)",
+    "mot.bad_poles": "die Polzahl muss gerade und mindestens 2 sein",
+    "mot.bad_rpm": "die Drehzahl muss zwischen 0 und der Synchrondrehzahl ({ns} 1/min) liegen",
+    "mot.title": "Asynchronmotor",
+    "mot.power": "Abgabeleistung",
+    "mot.ns": "Synchrondrehzahl",
+    "mot.poles": "Pole",
+    "mot.speed": "Bemessungsdrehzahl",
+    "mot.assumed": "4 % Schlupf angenommen",
+    "mot.slip": "Schlupf",
+    "mot.torque": "Bemessungsmoment",
+    "mot.pin": "Aufnahmeleistung",
+    "mot.losses": "Verluste",
+    "mot.current": "Bemessungsstrom",
+    "mot.start_dol": "Anlaufstrom (direkt)",
+    "mot.start_yd": "Anlaufstrom (Y-Δ)",
+    "mot.note1": "Kabel nach dem Bemessungsstrom, Schutz nach dem Anlaufstrom auslegen (Charakteristik C/D).",
+    "mot.note2": "Stern-Dreieck-Anlauf senkt Anlaufstrom und -moment auf 1/3.",
+    "mot.note_single": "Einphasenmotoren brauchen einen Betriebs- (oft auch einen Anlauf-)kondensator.",
+
+    # Kurvenform
+    "wave.help": (
+        "Effektivwert, Mittelwert, Gleichrichtwert, Scheitel- und Formfaktor einer Kurvenform.\n\n"
+        "Formen: sine, square, triangle, sawtooth, pwm (0…Vp), halfwave, fullwave (gleichgerichteter Sinus)\n\n"
+        "Beispiele:\n"
+        "  elektro wave sine --vp 325\n"
+        "  elektro wave sine --rms 230\n"
+        "  elektro wave pwm --vp 12 -d 25 -r 10\n"
+        "  elektro wave square --vpp 5 --offset 2.5 -f 1k --plot rechteck.svg"
+    ),
+    "wave.arg": "Kurvenform",
+    "wave.opt.vp": "Scheitelwert (Amplitude)",
+    "wave.opt.vpp": "Spitze-Spitze-Wert",
+    "wave.opt.rms": "Effektivwert (ohne Offset) — berechnet die Amplitude",
+    "wave.opt.offset": "Gleichanteil (Offset)",
+    "wave.opt.duty": "Tastgrad (%) für pwm und square",
+    "wave.opt.freq": "Frequenz (Hz) — zeigt die Periode",
+    "wave.opt.load": "Lastwiderstand (Ω) — berechnet die Leistung",
+    "wave.opt.unit": "Einheit der Werte (V, A …)",
+    "wave.bad_shape": "unbekannte Kurvenform (Optionen: {options})",
+    "wave.need": "genau eines von --vp, --vpp oder --rms angeben",
+    "wave.bad": "der Tastgrad muss zwischen 0 und 100 % liegen, Frequenz und Last positiv",
+    "wave.title": "Kurvenform",
+    "wave.shape": "Form",
+    "wave.kind.sine": "Sinus",
+    "wave.kind.square": "Rechteck",
+    "wave.kind.triangle": "Dreieck",
+    "wave.kind.sawtooth": "Sägezahn",
+    "wave.kind.pwm": "PWM",
+    "wave.kind.halfwave": "einweggleichgerichteter Sinus",
+    "wave.kind.fullwave": "zweiweggleichgerichteter Sinus",
+    "wave.peak": "Max / Min",
+    "wave.vpp": "Spitze-Spitze",
+    "wave.dc": "Mittelwert (DC)",
+    "wave.rms": "Effektivwert (True RMS)",
+    "wave.ac_rms": "Effektivwert (nur AC)",
+    "wave.rect": "Gleichrichtwert",
+    "wave.crest": "Scheitelfaktor",
+    "wave.form": "Formfaktor",
+    "wave.period": "Periode",
+    "wave.t_high": "High-Zeit",
+    "wave.power": "Leistung an {r}",
+    "wave.note1": "RMS = √(DC² + AC_rms²).  Mittelwertmessende Geräte zeigen 1,111 × Gleichrichtwert.",
+    "wave.note2": "Solche Geräte stimmen nur bei Sinus; für andere Formen ein True-RMS-Messgerät verwenden.",
+
+    # FFT
+    "fft.help": (
+        "Spektrum eines abgetasteten Signals aus einer CSV-Datei (Oszilloskop- oder Logger-Export).\n\n"
+        "Findet Grundschwingung, größte Spitzen, THD und THD+N. Die Abtastrate stammt aus der\n"
+        "Zeitspalte, einem 'Increment'-Kopf (Rigol) oder --rate.\n\n"
+        "Beispiele:\n"
+        "  elektro fft scope.csv\n"
+        "  elektro fft daten.csv --column 3 --window flattop\n"
+        "  elektro fft adc.txt --rate 48k --plot spektrum.svg"
+    ),
+    "fft.arg": "CSV- / Textdatei mit numerischen Spalten",
+    "fft.opt.column": "Spalte des Signals (1 = erste); Standard 2, wenn es eine Zeitspalte gibt",
+    "fft.opt.rate": "Abtastrate (Hz), wenn es keine Zeitspalte gibt",
+    "fft.opt.window": "Fenster: {options}",
+    "fft.opt.peaks": "Anzahl der aufgelisteten Spitzen",
+    "fft.no_data": "keine numerischen Daten in der Datei gefunden",
+    "fft.too_short": "mindestens 16 Abtastwerte nötig",
+    "fft.bad_window": "unbekanntes Fenster (Optionen: {options})",
+    "fft.bad_column": "die Spalte muss zwischen 1 und {n} liegen",
+    "fft.src.rate": "--rate",
+    "fft.src.header": "Dateikopf",
+    "fft.src.time": "Zeitspalte",
+    "fft.need_rate": "die Abtastrate ist unbekannt; --rate angeben",
+    "fft.index_col": "die erste Spalte sieht wie ein Index aus (Schritt 1); --rate angeben, falls es keine Zeit ist",
+    "fft.title": "Spektrum (FFT)",
+    "fft.file": "Datei",
+    "fft.fs": "Abtastrate",
+    "fft.samples": "Abtastwerte",
+    "fft.resolution": "Auflösung",
+    "fft.fundamental": "Grundschwingung",
+    "fft.peaks": "Größte Spitzen",
+    "fft.amp": "Amplitude",
+    "fft.note": "Fenster: {window}. Amplituden sind Scheitelwerte; dBc bezogen auf die Grundschwingung.",
+
+    # Pinbelegung
+    "pin.help": (
+        "Pinbelegung gängiger ICs und Transistoren (offline).\n\n"
+        "Beispiele:\n"
+        "  elektro pinout              (Teileliste)\n"
+        "  elektro pinout ne555\n"
+        "  elektro pinout 74hc595\n"
+        "  elektro pinout bc547"
+    ),
+    "pin.arg": "Bauteilname, z. B. ne555, lm358, 7805",
+    "pin.tab": "Kühlfahne",
+    "pin.col.part": "Bauteil",
+    "pin.col.package": "Gehäuse",
+    "pin.col.desc": "Beschreibung",
+    "pin.col.aliases": "Gleiche Belegung",
+    "pin.usage": "Eines anzeigen: elektro pinout NAME",
+    "pin.unknown": "'{name}' ist nicht in der Liste (siehe: elektro pinout). Versuch: elektro datasheet {name}",
+    "pin.note.dip": "Draufsicht; Pin 1 liegt an der Kerbe / am Punkt, Zählung gegen den Uhrzeigersinn.",
+    "pin.note.front": "Vorderansicht (Beschriftung zu dir, Beine unten). Hersteller weichen ab — Datenblatt prüfen.",
+    "pin.same": "Gleiche Belegung: {parts}",
+    "pin.desc.ne555": "Timer",
+    "pin.desc.lm358": "Doppel-Operationsverstärker",
+    "pin.desc.ua741": "Einzel-Operationsverstärker",
+    "pin.desc.lm386": "Audio-Leistungsverstärker",
+    "pin.desc.attiny85": "8-Bit-AVR-Mikrocontroller",
+    "pin.desc.pc817": "Optokoppler",
+    "pin.desc.74hc00": "Vierfach-NAND mit 2 Eingängen",
+    "pin.desc.74hc04": "Sechsfach-Inverter",
+    "pin.desc.74hc595": "8-Bit-Schieberegister mit Ausgangsregister",
+    "pin.desc.cd4017": "Dekadenzähler / Teiler",
+    "pin.desc.l293d": "Doppel-H-Brücken-Motortreiber",
+    "pin.desc.atmega328p": "8-Bit-AVR-Mikrocontroller (Arduino Uno)",
+    "pin.desc.78xx": "Positiver Festspannungsregler",
+    "pin.desc.79xx": "Negativer Festspannungsregler",
+    "pin.desc.lm317": "Einstellbarer positiver Regler",
+    "pin.desc.ams1117": "LDO-Regler",
+    "pin.desc.irfz44n": "N-Kanal-Leistungs-MOSFET",
+    "pin.desc.bc547": "NPN-Transistor",
+    "pin.desc.2n2222": "NPN-Transistor",
+    "pin.desc.lm35": "Temperatursensor (10 mV/°C)",
+    "pin.desc.ds18b20": "1-Wire-Digitaltemperatursensor",
+    "pin.desc.tl431": "Einstellbare Shunt-Referenz",
+})

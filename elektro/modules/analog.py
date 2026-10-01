@@ -12,7 +12,7 @@ from rich.table import Table
 from elektro.i18n import pct, t
 from elektro.plot import PlotError, curve, plot_path
 from elektro.ui import (
-    cli_parser, console, eng, err_console, fail, json_mode, result_panel, theory, warn,
+    cli_parser, console, eng, fail, json_mode, plot_saved, result_panel, theory, warn,
 )
 from elektro.units import format_si, series_neighbors
 
@@ -154,7 +154,7 @@ def charge(
                         t("plot.current" if inductive else "plot.voltage"))
         except (PlotError, OSError) as e:
             fail(str(e))
-        (err_console if json_mode() else console).print(f"[green]✓[/] {t('plot.saved', path=out)}")
+        plot_saved(out)
     if json_mode():
         return
     # ASCII eğri: 0 … 5τ

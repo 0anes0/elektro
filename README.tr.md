@@ -67,6 +67,20 @@ ELEKTRO_LANG=ru elektro      # ortam değişkeniyle
 
 Her komut `--json` ile makine okunur çıktı verir: `elektro ohm -v 12 -r 1k --json`
 
+### Rapor çıktısı
+
+Sonuçları ödev, laboratuvar raporu veya not için tablo olarak al:
+
+```bash
+elektro ohm -v 12 -r 1k --md                 # Markdown tablo
+elektro filter rc --r 1k --c 100n --latex    # LaTeX tabular
+elektro cable -i 16 -l 25 --report lab.md    # lab.md dosyasının sonuna ekle (.tex → LaTeX)
+elektro motor -p 7.5k --rpm 1450 --copy      # çıktıyı panoya kopyala
+```
+
+`--report` ile terminalde normal çıktı da görünür; her komut, çalıştırılan komut satırıyla birlikte
+dosyaya eklenir. `--plot` ile kaydedilen grafikler Markdown raporuna resim olarak girer.
+
 ### Etkileşimli mod, değişkenler, geçmiş
 
 ```bash
@@ -145,6 +159,22 @@ elektro acpower --v 400 --p 15k --pf 0.82 --phases 3 --target-pf 0.95
 elektro stardelta delta 10 20 30             # Δ → Y dönüşümü
 ```
 
+### Tesisat ve makineler
+
+```bash
+elektro cable -i 16 -l 25                    # kablo kesiti: akım kapasitesi + gerilim düşümü
+elektro cable -p 9k --phases 3 --pf 0.85 -l 40 --method C
+elektro cable -i 120 --phases 3 -l 80 --material al --insulation xlpe --group 3
+elektro breaker -i 14 --iz 21 --curve B --mm2 2.5 -l 30   # MCB seçimi, Zs, en büyük uzunluk
+elektro breaker -i 40 --iz 50 --type fuse    # gG buşonlu sigorta
+elektro shortcircuit --kva 630 --mm2 95 -l 50 --time 0.4  # Ik3, ip, Ik1, kesme kapasitesi
+elektro transformer --v1 230 --v2 12 --va 50 # oran, akımlar, nüve kesiti, sarım, tel çapı
+elektro motor -p 7.5k --rpm 1450             # akım, moment, kayma, kalkış akımı (Y-Δ)
+```
+
+Kablo kapasiteleri IEC 60364-5-52 tablolarındandır (A1, B1, C, D döşeme şekilleri; sıcaklık ve
+gruplama düzeltmesiyle). Sonuçlar ön boyutlandırma içindir; proje için yönetmeliğe göre kontrol et.
+
 ### Filtreler
 
 ```bash
@@ -158,6 +188,20 @@ elektro filter notch --r 1k --l 1.013 --c 10u  # 50 Hz
 elektro filter rc --r 1k --c 100n --plot bode.svg   # Bode grafiği kaydet
 elektro charge --r 10k --c 100u --v 5 --plot charge.svg
 ```
+
+### Sinyal
+
+```bash
+elektro wave sine --rms 230                  # tepe, ortalama, RMS, tepe/biçim faktörü
+elektro wave pwm --vp 12 -d 25 -r 10         # PWM'in DC ve RMS değeri, yükteki güç
+elektro wave square --vpp 5 --offset 2.5 --plot kare.svg
+elektro fft osiloskop.csv                    # temel bileşen, harmonikler, THD, THD+N
+elektro fft adc.txt --rate 48k --window flattop --plot spektrum.svg
+```
+
+`fft` osiloskop CSV'lerini (Rigol, Siglent, Tektronix), `;` ile ayrılmış ve virgüllü ondalık
+dosyaları ve tek sütunlu ham verileri okur. Örnekleme hızı zaman sütunundan veya dosya
+başlığından alınır; yoksa `--rate` ver.
 
 Grafikler ek bir kütüphane gerektirmeden SVG olarak yazılır. `.png` / `.pdf` için matplotlib'i
 elektro'nun ortamına kur: `~/.local/share/elektro/venv/bin/pip install matplotlib`.
@@ -193,8 +237,15 @@ elektro crc "01 03 00 00 00 0A"              # CRC-8/16/32, Modbus, checksum
 ```bash
 elektro calc "12V / (4k7 + 1k)"              # mühendislik gösterimli hesap makinesi
 elektro calc "par(1k, 2k2, 4k7)" -u Ω
+elektro calc "230∠0 / (10 + zl(100m, 50))" -u A        # karmaşık sayılar ve fazörler
+elektro calc "100 + zl(10m, 1k) || zc(1u, 1k)" -u Ω -f 1k  # empedans → seri R + L/C
 elektro unit 25 c                            # °C/°F/K, mil/mm, dB, AWG …
+elektro pinout                               # bacak bağlantısı bilinen parçalar
+elektro pinout ne555                         # entegre / transistör bacakları (çevrimdışı)
 ```
+
+`calc` içinde `j` sanal birimdir (`3+4j`, `3+j4`), `10∠30` kutupsal gösterimdir (derece), `||`
+paralel bağlamadır. Fonksiyonlar: `re im abs arg conj polar zl zc`.
 
 ### Datasheet indirici
 

@@ -1300,3 +1300,342 @@ MESSAGES.update({
     ),
     "shell.welcome": "etkileşimli mod. Komutlar için 'help', çıkmak için 'exit' yaz.",
 })
+
+# --- 0.6 ---------------------------------------------------------------------------------
+MESSAGES.update({
+    # rapor çıktısı
+    "cli.opt.md": "Sonucu Markdown olarak yaz (not ve raporlar için tablolar)",
+    "cli.opt.latex": "Sonucu LaTeX olarak yaz",
+    "cli.opt.report": "Sonucu bir rapor dosyasına ekle (.md veya .tex)",
+    "cli.opt.copy": "Çıktıyı panoya kopyala",
+    "report.conflict": "--md, --latex/--report ve --json birlikte kullanılamaz",
+    "report.quantity": "Büyüklük",
+    "report.value": "Değer",
+    "report.appended": "Rapora eklendi: {path}",
+    "report.copied": "Panoya kopyalandı.",
+    "report.no_clipboard": "pano aracı bulunamadı (wl-clipboard veya xclip kur)",
+
+    # calc: karmaşık sayılar
+    "calc.opt.freq": "Frekans (Hz) — karmaşık empedansı R + L veya R + C olarak gösterir",
+    "calc.need_real": "{name}() gerçel sayı ister",
+    "calc.rect": "Kartezyen",
+    "calc.polar": "Kutupsal",
+    "calc.mag": "Genlik",
+    "calc.angle": "Açı",
+    "calc.eq_r": "Seri R @ {f}",
+    "calc.eq_l": "Seri L",
+    "calc.eq_c": "Seri C",
+    "calc.help": (
+        "Mühendislik gösterimini, birimleri ve karmaşık sayıları anlayan hesap makinesi.\n\n"
+        "İşleçler: + − * / ^ ( )  ||  (paralel)   Fonksiyonlar: sqrt log ln exp sin cos tan db dbp par\n"
+        "Karmaşık: j, 3+j4, 10∠30 (derece), polar(r, derece), re im abs arg conj\n"
+        "Empedans: zl(L, f) = jωL, zc(C, f) = 1/(jωC).  Sabitler: pi e c\n\n"
+        "Örnekler:\n"
+        "  elektro calc \"12V / (4k7 + 1k)\"\n"
+        "  elektro calc \"par(1k, 2k2, 4k7)\" -u Ω\n"
+        "  elektro calc \"230∠0 / (10 + zl(100m, 50))\" -u A\n"
+        "  elektro calc \"100 + zl(10m, 1k) || zc(1u, 1k)\" -u Ω -f 1k"
+    ),
+
+    # paneller / menü
+    "panel.install": "Tesisat ve makineler",
+    "menu.cable": "Kablo kesiti",
+    "menu.breaker": "Sigorta / otomatik sigorta",
+    "menu.shortcircuit": "Kısa devre akımı",
+    "menu.transformer": "Transformatör",
+    "menu.motor": "Asenkron motor",
+    "menu.wave": "RMS, ortalama, tepe faktörü",
+    "menu.fft": "CSV spektrumu (THD)",
+    "menu.pinout": "Entegre / transistör bacakları",
+    "menu.report": "Markdown / LaTeX rapor",
+
+    # kablo
+    "cable.help": (
+        "Alçak gerilim kablo kesitini akım taşıma kapasitesi ve gerilim düşümüne göre seçer (IEC 60364-5-52).\n\n"
+        "Döşeme şekilleri: A1 (yalıtımlı duvarda boru içinde), B1 (duvar üstünde/içinde boru içinde),\n"
+        "C (doğrudan duvara kroşeli), D (toprak altında).\n\n"
+        "Örnekler:\n"
+        "  elektro cable -i 16 -l 25\n"
+        "  elektro cable -p 9k --phases 3 --pf 0.85 -l 40 --method C\n"
+        "  elektro cable -i 120 --phases 3 -l 80 --material al --insulation xlpe --group 3\n"
+        "  elektro cable -i 20 -l 30 --mm2 2.5          (verilen kesiti kontrol et)"
+    ),
+    "cable.opt.current": "Yük akımı Ib (A)",
+    "cable.opt.power": "Yük gücü (W) — akımı hesaplar",
+    "cable.opt.v": "Gerilim (V); varsayılan 230 (tek faz) / 400 (üç faz)",
+    "cable.opt.length": "Kablo uzunluğu (tek yön), ör. 25 (m), 120m",
+    "cable.opt.drop": "İzin verilen gerilim düşümü (%)",
+    "cable.opt.method": "Döşeme şekli: A1, B1, C, D",
+    "cable.opt.material": "İletken: cu (bakır) veya al (alüminyum)",
+    "cable.opt.insulation": "Yalıtım: pvc (70 °C) veya xlpe (90 °C)",
+    "cable.opt.ta": "Ortam sıcaklığı (°C); varsayılan havada 30, toprakta 20",
+    "cable.opt.group": "Birlikte döşenen devre sayısı (gruplama katsayısı)",
+    "cable.opt.mm2": "Seçmek yerine bu kesiti (mm²) kontrol et",
+    "cable.bad_choice": "geçersiz değer '{value}' (seçenekler: {options})",
+    "cable.too_hot": "ortam sıcaklığı {tmax} °C'nin altında olmalı",
+    "cable.need": "akımı (-i) veya gücü (-p) ver",
+    "cable.bad_section": "standart bir kesit değil (seçenekler: {options})",
+    "cable.none": "300 mm² bile yetmiyor; paralel kablo veya daha yüksek gerilim kullan",
+    "cable.title": "Kablo Seçimi",
+    "cable.system": "Sistem",
+    "cable.ib": "Yük akımı Ib",
+    "cable.section": "Kesit",
+    "cable.iz": "Akım taşıma kapasitesi Iz",
+    "cable.drop": "Gerilim düşümü",
+    "cable.loss": "Kablo kaybı",
+    "cable.temp": "İletken sıcaklığı",
+    "cable.by_ampacity": "Yalnız kapasiteye göre",
+    "cable.mcb": "Uygun sigorta (Ib ≤ In ≤ Iz)",
+    "cable.no_mcb": "yok — daha kalın kablo seç",
+    "cable.not_ok": "bu kesit koşulları sağlamıyor",
+    "cable.note1": "Kapasiteler: IEC 60364-5-52 (bakır/PVC); XLPE ve alüminyum için yaklaşık katsayılar.",
+    "cable.note2": "İç Tesisat Yönetmeliği: aydınlatmada %1.5, kuvvette %3 (IEC tipik: %3 / %5).",
+
+    # sigorta
+    "brk.help": (
+        "Otomatik sigorta (MCB) veya gG buşonlu sigorta seçer ve kablo korumasını kontrol eder.\n\n"
+        "Koşullar: Ib ≤ In ≤ Iz ve I2 ≤ 1.45·Iz.  Arızada açma: Zs ≤ U0 / Ia.\n\n"
+        "Örnekler:\n"
+        "  elektro breaker -i 14 --iz 21\n"
+        "  elektro breaker -i 14 --iz 21 --curve B --mm2 2.5 -l 30\n"
+        "  elektro breaker -i 40 --iz 50 --type fuse"
+    ),
+    "brk.opt.current": "Yük akımı Ib (A)",
+    "brk.opt.iz": "Kablonun akım taşıma kapasitesi Iz (A) — bkz: elektro cable",
+    "brk.opt.type": "Cihaz: mcb veya fuse (gG)",
+    "brk.opt.curve": "MCB eğrisi: B, C veya D",
+    "brk.opt.zs": "Ölçülen toprak arıza çevrim empedansı Zs (Ω)",
+    "brk.opt.mm2": "Kablo kesiti (mm²) — Zs'yi ve en büyük uzunluğu hesaplar",
+    "brk.opt.length": "Kablo uzunluğu (m) — Zs'yi hesaplar",
+    "brk.opt.ze": "Zs hesabı için dış çevrim empedansı Ze (Ω)",
+    "brk.opt.u0": "Faz-toprak gerilimi U0 (V)",
+    "brk.too_big": "akım en büyük standart değerin üzerinde",
+    "brk.title": "Koruma Cihazı",
+    "brk.device": "Cihaz",
+    "brk.magnetic": "Ani açma (manyetik)",
+    "brk.zs_max": "En büyük çevrim empedansı Zs",
+    "brk.zs_calc": "Çevrim empedansı Zs (hesap)",
+    "brk.ik_min": "Toprak arıza akımı",
+    "brk.lmax": "En büyük uzunluk ({mm2} mm²)",
+    "brk.not_ok": "kablo korunmuyor; en fazla {max} A kullan veya kabloyu büyüt",
+    "brk.no_device": "bu yük akımında kabloyu koruyan standart bir cihaz yok",
+    "brk.note.curve": "B: omik yükler, aydınlatma · C: genel, motorlar · D: trafolar, yüksek kalkış akımı.",
+    "brk.note.zs": "Kablodan Zs hesabında Ze = {ze} Ω ve faz kesitine eşit koruma iletkeni alındı.",
+    "brk.note.fuse": "gG sigorta: I2 = 1.6·In (In ≥ 16 A); açma süresini sigorta eğrisinden kontrol et.",
+
+    # kısa devre
+    "sc.help": (
+        "Trafodan beslenen alçak gerilim şebekesinde kısa devre akımı (IEC 60909, basitleştirilmiş).\n\n"
+        "Örnekler:\n"
+        "  elektro shortcircuit --kva 630\n"
+        "  elektro shortcircuit --kva 1000 --uk 6 --pk 10.5k --mm2 240 -l 60 --parallel 2\n"
+        "  elektro shortcircuit --kva 400 --mm2 16 -l 80 --time 0.4"
+    ),
+    "sc.opt.kva": "Trafo gücü (kVA)",
+    "sc.opt.uk": "Kısa devre gerilimi uk (%); varsayılan 4 (≤ 630 kVA) veya 6",
+    "sc.opt.v": "Sekonder hat gerilimi (V)",
+    "sc.opt.pk": "Bakır (yük) kayıpları Pk (W); varsayılan ur = %1",
+    "sc.opt.sk": "Üst şebeke kısa devre gücü Sk'' (MVA); 0 = sonsuz",
+    "sc.opt.mm2": "Arıza noktasına kadar kablo kesiti (mm²)",
+    "sc.opt.length": "Arıza noktasına kadar kablo uzunluğu (m)",
+    "sc.opt.parallel": "Paralel kablo sayısı",
+    "sc.opt.time": "Açma süresi (s) — kablonun ısıl dayanımını kontrol eder",
+    "sc.need_cable": "--mm2 ve --length birlikte verilmeli",
+    "sc.bad_pk": "bakır kayıpları bu uk için çok yüksek",
+    "sc.title": "Kısa Devre Akımı",
+    "sc.trafo": "Transformatör",
+    "sc.in": "Anma akımı",
+    "sc.zq": "Şebeke Zq ({sk} MVA)",
+    "sc.zc": "Kablo Zc ({cable})",
+    "sc.icu": "Kesme kapasitesi",
+    "sc.smin": "En küçük kesit ({t}, k = {k})",
+    "sc.note1": "Ik3 en büyük: c = 1.05, iletkenler 20 °C; Ik1 en küçük (faz–nötr): c = 0.95.",
+    "sc.note2": "Kesme kapasitesi için Ik3'ü, korumanın açtığını kontrol için Ik1'i kullan.",
+
+    # transformatör
+    "tr.help": (
+        "Transformatör: dönüştürme oranı, akımlar ve küçük şebeke trafosunun sargı bilgileri.\n\n"
+        "Örnekler:\n"
+        "  elektro transformer --v1 230 --v2 12\n"
+        "  elektro transformer --v1 230 --v2 24 --va 100\n"
+        "  elektro transformer --v1 34.5k --v2 400 --va 630k --phases 3"
+    ),
+    "tr.opt.v1": "Primer gerilim (V)",
+    "tr.opt.v2": "Sekonder gerilim (V, yükte)",
+    "tr.opt.va": "Anma gücü (VA), ör. 50, 1k, 630k",
+    "tr.opt.b": "Tepe akı yoğunluğu (T): silisli sac için 1.0–1.4",
+    "tr.opt.j": "Akım yoğunluğu (A/mm²): 2–3.5",
+    "tr.opt.eff": "Verim",
+    "tr.opt.area": "Nüve kesiti (cm²); varsayılan ≈ √P",
+    "tr.opt.reg": "Yükteki gerilim düşümü için sekondere eklenen sarım (%)",
+    "tr.title": "Transformatör",
+    "tr.ratio": "Dönüştürme oranı",
+    "tr.kind": "Tür",
+    "tr.step_down": "düşürücü",
+    "tr.step_up": "yükseltici",
+    "tr.hint": "Akımlar ve sargı bilgileri için --va ekle.",
+    "tr.power": "Güç",
+    "tr.three_note": "Akımlar hat akımlarıdır. Sargı tasarımı yalnızca tek fazlı trafolar için hesaplanır.",
+    "tr.area": "Nüve kesiti",
+    "tr.tpv": "Volt başına sarım",
+    "tr.wire1": "Primer teli",
+    "tr.wire2": "Sekonder teli",
+    "tr.big": "Pratik formüller küçük trafolar içindir (birkaç yüz VA'ya kadar).",
+    "tr.note1": "B = {b} T ve J = {j} A/mm² ile hesaplandı; pencere iki sargıyı da almalı.",
+    "tr.note2": "N/V = 1 / (4.44 · f · B · A).  B çok yüksekse nüve ısınır ve boşta akım büyür.",
+
+    # motor
+    "mot.help": (
+        "Asenkron motor: akım, moment, kayma, kayıplar ve kalkış akımı.\n\n"
+        "Örnekler:\n"
+        "  elektro motor -p 7.5k --rpm 1450\n"
+        "  elektro motor -p 15k --pf 0.86 --eff 0.92 --poles 2 --rpm 2940\n"
+        "  elektro motor -p 750 --v 230 --phases 1 --pf 0.75 --eff 0.7"
+    ),
+    "mot.opt.power": "Anma (mil) gücü (W), ör. 7.5k",
+    "mot.opt.v": "Gerilim (V; üç fazda hat gerilimi)",
+    "mot.opt.eff": "Verim",
+    "mot.opt.poles": "Kutup sayısı (2, 4, 6 …)",
+    "mot.opt.rpm": "Etiketteki anma devri (d/dk)",
+    "mot.opt.start": "Kalkış akımı / anma akımı (direkt yol verme)",
+    "mot.bad_poles": "kutup sayısı çift ve en az 2 olmalı",
+    "mot.bad_rpm": "devir 0 ile senkron devir ({ns} d/dk) arasında olmalı",
+    "mot.title": "Asenkron Motor",
+    "mot.power": "Çıkış gücü",
+    "mot.ns": "Senkron devir",
+    "mot.poles": "kutup",
+    "mot.speed": "Anma devri",
+    "mot.assumed": "%4 kayma varsayıldı",
+    "mot.slip": "Kayma",
+    "mot.torque": "Anma momenti",
+    "mot.pin": "Giriş gücü",
+    "mot.losses": "Kayıplar",
+    "mot.current": "Anma akımı",
+    "mot.start_dol": "Kalkış akımı (direkt)",
+    "mot.start_yd": "Kalkış akımı (Y-Δ)",
+    "mot.note1": "Kabloyu anma akımına, korumayı kalkış akımına göre seç (C/D eğrisi).",
+    "mot.note2": "Yıldız-üçgen yol verme kalkış akımını ve momentini 1/3'e düşürür.",
+    "mot.note_single": "Tek fazlı motorlar daimi (çoğu zaman bir de kalkış) kondansatörü ister.",
+
+    # dalga şekli
+    "wave.help": (
+        "Bir dalga şeklinin RMS, ortalama, doğrultulmuş ortalama, tepe ve biçim faktörü.\n\n"
+        "Şekiller: sine, square, triangle, sawtooth, pwm (0…Vp), halfwave, fullwave (doğrultulmuş sinüs)\n\n"
+        "Örnekler:\n"
+        "  elektro wave sine --vp 325\n"
+        "  elektro wave sine --rms 230\n"
+        "  elektro wave pwm --vp 12 -d 25 -r 10\n"
+        "  elektro wave square --vpp 5 --offset 2.5 -f 1k --plot kare.svg"
+    ),
+    "wave.arg": "Dalga şekli",
+    "wave.opt.vp": "Tepe genliği",
+    "wave.opt.vpp": "Tepeden tepeye değer",
+    "wave.opt.rms": "RMS değer (ofsetsiz) — genliği hesaplar",
+    "wave.opt.offset": "DC ofset",
+    "wave.opt.duty": "Doluluk oranı (%), pwm ve square için",
+    "wave.opt.freq": "Frekans (Hz) — periyodu gösterir",
+    "wave.opt.load": "Yük direnci (Ω) — gücü hesaplar",
+    "wave.opt.unit": "Değerlerin birimi (V, A …)",
+    "wave.bad_shape": "bilinmeyen dalga şekli (seçenekler: {options})",
+    "wave.need": "--vp, --vpp veya --rms'den tam olarak birini ver",
+    "wave.bad": "doluluk oranı %0 ile %100 arasında, frekans ve yük pozitif olmalı",
+    "wave.title": "Dalga Şekli",
+    "wave.shape": "Şekil",
+    "wave.kind.sine": "sinüs",
+    "wave.kind.square": "kare",
+    "wave.kind.triangle": "üçgen",
+    "wave.kind.sawtooth": "testere dişi",
+    "wave.kind.pwm": "PWM",
+    "wave.kind.halfwave": "yarım dalga doğrultulmuş sinüs",
+    "wave.kind.fullwave": "tam dalga doğrultulmuş sinüs",
+    "wave.peak": "En büyük / en küçük",
+    "wave.vpp": "Tepeden tepeye",
+    "wave.dc": "Ortalama (DC)",
+    "wave.rms": "RMS (gerçek)",
+    "wave.ac_rms": "RMS (yalnız AC)",
+    "wave.rect": "Doğrultulmuş ortalama",
+    "wave.crest": "Tepe faktörü",
+    "wave.form": "Biçim faktörü",
+    "wave.period": "Periyot",
+    "wave.t_high": "Yüksek süre",
+    "wave.power": "{r} üzerindeki güç",
+    "wave.note1": "RMS = √(DC² + AC_rms²).  Ortalama ölçen multimetreler 1.111 × doğrultulmuş ortalama gösterir.",
+    "wave.note2": "Bu ölçü aletleri yalnız sinüste doğrudur; diğer şekiller için true-RMS ölçü aleti kullan.",
+
+    # fft
+    "fft.help": (
+        "CSV dosyasındaki örneklenmiş sinyalin spektrumu (osiloskop veya veri kaydedici çıktısı).\n\n"
+        "Temel frekansı, en büyük tepeleri, THD ve THD+N'yi bulur. Örnekleme hızı zaman sütunundan,\n"
+        "'Increment' başlığından (Rigol) veya --rate'ten alınır.\n\n"
+        "Örnekler:\n"
+        "  elektro fft osiloskop.csv\n"
+        "  elektro fft veri.csv --column 3 --window flattop\n"
+        "  elektro fft adc.txt --rate 48k --plot spektrum.svg"
+    ),
+    "fft.arg": "Sayısal sütunlar içeren CSV / metin dosyası",
+    "fft.opt.column": "Sinyalin sütunu (1 = ilk); zaman sütunu varsa varsayılan 2",
+    "fft.opt.rate": "Zaman sütunu yoksa örnekleme hızı (Hz)",
+    "fft.opt.window": "Pencere: {options}",
+    "fft.opt.peaks": "Listelenecek tepe sayısı",
+    "fft.no_data": "dosyada sayısal veri bulunamadı",
+    "fft.too_short": "en az 16 örnek gerekli",
+    "fft.bad_window": "bilinmeyen pencere (seçenekler: {options})",
+    "fft.bad_column": "sütun 1 ile {n} arasında olmalı",
+    "fft.src.rate": "--rate",
+    "fft.src.header": "dosya başlığı",
+    "fft.src.time": "zaman sütunu",
+    "fft.need_rate": "örnekleme hızı bilinmiyor; --rate ver",
+    "fft.index_col": "ilk sütun örnek numarasına benziyor (adım 1); zaman değilse --rate ver",
+    "fft.title": "Spektrum (FFT)",
+    "fft.file": "Dosya",
+    "fft.fs": "Örnekleme hızı",
+    "fft.samples": "Örnek",
+    "fft.resolution": "Çözünürlük",
+    "fft.fundamental": "Temel bileşen",
+    "fft.peaks": "En büyük tepeler",
+    "fft.amp": "Genlik",
+    "fft.note": "Pencere: {window}. Genlikler tepe değeridir; dBc temel bileşene göredir.",
+
+    # pinout
+    "pin.help": (
+        "Yaygın entegre ve transistörlerin bacak bağlantıları (çevrimdışı).\n\n"
+        "Örnekler:\n"
+        "  elektro pinout              (parça listesi)\n"
+        "  elektro pinout ne555\n"
+        "  elektro pinout 74hc595\n"
+        "  elektro pinout bc547"
+    ),
+    "pin.arg": "Parça adı, ör. ne555, lm358, 7805",
+    "pin.tab": "tabla",
+    "pin.col.part": "Parça",
+    "pin.col.package": "Kılıf",
+    "pin.col.desc": "Açıklama",
+    "pin.col.aliases": "Aynı bacak düzeni",
+    "pin.usage": "Birini göster: elektro pinout AD",
+    "pin.unknown": "'{name}' listede yok (bkz: elektro pinout). Dene: elektro datasheet {name}",
+    "pin.note.dip": "Üstten görünüş; 1. bacak çentik / nokta yanındadır, numaralar saat yönünün tersine artar.",
+    "pin.note.front": "Önden görünüş (yazılı yüz sana dönük, bacaklar aşağıda). Üreticiler farklı olabilir — datasheet'e bak.",
+    "pin.same": "Aynı bacak düzeni: {parts}",
+    "pin.desc.ne555": "Zamanlayıcı",
+    "pin.desc.lm358": "Çift op-amp",
+    "pin.desc.ua741": "Tekli op-amp",
+    "pin.desc.lm386": "Ses güç yükselteci",
+    "pin.desc.attiny85": "8 bit AVR mikrodenetleyici",
+    "pin.desc.pc817": "Optokuplör",
+    "pin.desc.74hc00": "Dörtlü 2 girişli NAND kapısı",
+    "pin.desc.74hc04": "Altılı DEĞİL kapısı",
+    "pin.desc.74hc595": "Çıkış tutuculu 8 bit kaydırmalı kaydedici",
+    "pin.desc.cd4017": "Onluk sayıcı / bölücü",
+    "pin.desc.l293d": "Çift H-köprü motor sürücü",
+    "pin.desc.atmega328p": "8 bit AVR mikrodenetleyici (Arduino Uno)",
+    "pin.desc.78xx": "Pozitif sabit regülatör",
+    "pin.desc.79xx": "Negatif sabit regülatör",
+    "pin.desc.lm317": "Ayarlı pozitif regülatör",
+    "pin.desc.ams1117": "LDO regülatör",
+    "pin.desc.irfz44n": "N kanal güç MOSFET'i",
+    "pin.desc.bc547": "NPN transistör",
+    "pin.desc.2n2222": "NPN transistör",
+    "pin.desc.lm35": "Sıcaklık sensörü (10 mV/°C)",
+    "pin.desc.ds18b20": "1-Wire dijital sıcaklık sensörü",
+    "pin.desc.tl431": "Ayarlı şönt referans",
+})

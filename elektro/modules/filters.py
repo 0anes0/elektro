@@ -13,7 +13,7 @@ from rich.table import Table
 
 from elektro.i18n import t
 from elektro.plot import PlotError, bode, logspace, plot_path
-from elektro.ui import cli_parser, console, eng, err_console, fail, json_mode, result_panel, theory
+from elektro.ui import cli_parser, console, eng, fail, json_mode, plot_saved, result_panel, theory
 from elektro.units import format_si
 
 app = typer.Typer(help=t("flt.help"), no_args_is_help=True)
@@ -79,7 +79,7 @@ def save_plot(path: Optional[Path], h: Callable[[float], complex], f0: float, ti
         out = bode(path, title, freqs, gains, phases, mark=f0)
     except (PlotError, OSError) as e:
         fail(str(e))
-    (err_console if json_mode() else console).print(f"[green]✓[/] {t('plot.saved', path=out)}")
+    plot_saved(out)
 
 
 def _solve_first_order(r, x, fc, x_name, x_to_fc, fc_to_x, fc_to_r):

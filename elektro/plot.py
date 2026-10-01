@@ -1,8 +1,9 @@
 """Grafik çıktısı: bağımlılıksız SVG, matplotlib varsa PNG/PDF.
 
-İki tür grafik var:
-  bode(...)  — logaritmik frekans ekseni, üstte genlik (dB), altta faz (°)
-  curve(...) — doğrusal x ekseni, tek eğri (ör. RC dolma)
+Üç tür grafik var:
+  bode(...)     — logaritmik frekans ekseni, üstte genlik (dB), altta faz (°)
+  curve(...)    — doğrusal x ekseni, tek eğri (ör. RC dolma)
+  spectrum(...) — logaritmik frekans ekseni, tek eğri (FFT)
 """
 
 from __future__ import annotations
@@ -207,5 +208,26 @@ def curve(path: Path, title: str, xs: Sequence[float], ys: Sequence[float],
         return path
     panel = _Panel(MARGIN_L, MARGIN_T, W - MARGIN_L - MARGIN_R, H - MARGIN_T - MARGIN_B, xs, ys, False,
                    y_label, x_label, x_unit, "line")
+    path.write_text(_svg(title, [panel]), encoding="utf-8")
+    return path
+
+
+def spectrum(path: Path, title: str, freqs: Sequence[float], levels: Sequence[float], y_label: str) -> Path:
+    """Genlik spektrumu: logaritmik frekans ekseni, dB cinsinden seviye."""
+    suffix = _check_suffix(path)
+    if suffix != ".svg":
+        plt = _matplotlib()
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.semilogx(freqs, levels)
+        ax.set_xlabel(f"{t('plot.freq')} (Hz)")
+        ax.set_ylabel(y_label)
+        ax.grid(True, which="both", alpha=0.4)
+        ax.set_title(title)
+        fig.tight_layout()
+        fig.savefig(path)
+        plt.close(fig)
+        return path
+    panel = _Panel(MARGIN_L, MARGIN_T, W - MARGIN_L - MARGIN_R, H - MARGIN_T - MARGIN_B, freqs, levels, True,
+                   y_label, t("plot.freq"), "Hz", "line")
     path.write_text(_svg(title, [panel]), encoding="utf-8")
     return path
