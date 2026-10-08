@@ -1,6 +1,5 @@
 """0.5: op-amp, sadeleştirme, geçmiş, REPL, doğrultucu, bobin, kristal, AC güç, grafik, değişkenler."""
 
-import itertools
 import json
 import math
 

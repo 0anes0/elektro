@@ -11,10 +11,12 @@ import shlex
 import shutil
 import subprocess
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from typing import List, Optional
 
 import typer
+from rich.color import ColorSystem
 from rich.console import Console
 from rich.errors import MarkupError
 from rich.panel import Panel
@@ -306,6 +308,21 @@ def finish_output() -> None:
             ok = copy_to_clipboard(text)
             err_console.print(f"[green]✓[/] {t('report.copied')}" if ok
                               else f"[yellow]{t('ui.warning')}:[/] {t('report.no_clipboard')}")
+
+
+@contextmanager
+def capture(file, width: int):
+    """Konsol çıktısını (renkleriyle) bir dosyaya yönlendirir; terminal arayüzü kullanır."""
+    # _file None ise rich her yazışta sys.stdout'a bakar; aynen geri konmalı
+    saved = [(c, c._file, c._force_terminal, c._width, c._color_system) for c in (console, err_console)]
+    try:
+        for c in (console, err_console):
+            c.file, c._force_terminal, c._width = file, True, width
+            c._color_system = c._color_system or ColorSystem.TRUECOLOR
+        yield
+    finally:
+        for c, f, force, w, colors in saved:
+            c._file, c._force_terminal, c._width, c._color_system = f, force, w, colors
 
 
 def result_panel(title: str, rows: dict, data: Optional[dict] = None, note: Optional[str] = None) -> None:

@@ -82,6 +82,94 @@ elektro motor -p 7.5k --rpm 1450 --copy      # copy the output to the clipboard
 With `--report` the normal output is still shown in the terminal; each command is appended
 together with its command line. Graphs saved with `--plot` are embedded in Markdown reports.
 
+### Terminal user interface (TUI)
+
+```bash
+elektro tui
+```
+
+Pick a command in the tree on the left (or search with `Ctrl+F`); its options open as a form and
+the command line is built as you type. `Enter` / `Ctrl+R` runs it and the colored result appears
+in the panel below. You can also type any `elektro` command into the command line directly.
+
+| Key | Action |
+|---|---|
+| `F2` / `F3` / `F4` | Calculations / Circuit / History tab |
+| `Ctrl+R` | Run |
+| `Ctrl+F` | Search commands |
+| `Ctrl+L` | Clear the output |
+| `Ctrl+Q` | Quit |
+
+In **History**, `Enter` on a row loads that command again.
+
+### Circuit editor and simulator
+
+`elektro tui circuit.json` or `F3` in the interface: draw a schematic with the keyboard, simulate it
+and see the result in a graph. The simulator is elektro's own solver (nodal analysis, nothing
+extra to install).
+
+```
+     A   B   C   D   E   F
+  1  ·   ·   ·   ·   ·   ·
+          5V        454.5mV
+  2  ·   ●─[R1 10k]──●   ·
+         +           │
+  3  [V1 5V]     [R2 1k]
+         │           │
+  4  ·   ●───────────●   ·
+       [GND]
+```
+
+| Key | Action |
+|---|---|
+| `r` `c` `l` `v` `i` `g` | place a resistor, capacitor, inductor, voltage/current source, ground |
+| `d` `q` `f` `u` | place a diode, BJT, MOSFET, op-amp |
+| `n` | net label (e.g. `VCC`, `OUT`): points with the same name are connected, probe as `V(OUT)` |
+| `Ctrl+E` | example circuits (divider, filters, rectifiers, transistor and op-amp circuits) |
+| `w` | wire: move the cursor, `Enter` sets a corner, `Esc` ends |
+| `e` / `Enter` | change the value (`4k7`, `100n`; sources: `SINE(0 1 1k)`, `PULSE(0 5 0 1u 1u 0.5m 1m)`, `AC 1`) |
+| `Ctrl+R` · `m` · `x` · `Ctrl+Z` | rotate · move · delete · undo |
+| `p` | probe: voltage `V(C3)` on a point, current `I(R1)` on a component |
+| `a` … `a` | current between two nodes `I(C1,C10)` |
+| `o` … `o` | equivalent resistance between two points `R(A1,D1)` (works for resistor-only circuits) |
+| `P` | type a probe: `V(C3,E7)`, `P(R1)`, transistor pin `I(Q1.B)` … |
+| `s` | analysis: `.tran 10m`, `.ac dec 100 10 100k`, `.dc V1 0 5 0.1` (command line + form) |
+| `F5` | solve; afterwards every change is solved again automatically |
+| `F6` · `Tab` | plot size · go to the plot (`←`/`→` cursor, `m` magnitude/phase) |
+| `Ctrl+S` · `Ctrl+O` · `Ctrl+N` | save · open · new |
+
+For semiconductors the value is a model name (change it with `e`), optionally followed by parameters:
+
+| Part | Models | Example |
+|---|---|---|
+| Diode | 1N4148, 1N4007, 1N5819, LED, LED-GREEN, LED-BLUE, LED-WHITE, BZX3V3, BZX5V1, BZX12 | `1N4148`, `IS=1e-14 N=1.8` |
+| BJT | 2N2222, 2N3904, BC547 (NPN) · 2N3906, BC557 (PNP) | `2N2222 BF=150` |
+| MOSFET | 2N7000, IRFZ44N (N) · BS250, IRF9540 (P) | `NMOS VTO=2 KP=0.5` |
+| Op-amp | ideal, LM358, LM741, TL072 + output limit | `TL072 ±15`, `LM358 0..5` |
+
+Nonlinear parts are solved with Newton-Raphson (diode: Shockley + breakdown, BJT: Ebers-Moll +
+Early effect, MOSFET: level 1, op-amp: single pole with GBW + rail limit). Junction capacitances
+are not modelled; results are meant for preliminary design.
+
+Nodes are named like spreadsheet cells (the address of their top-left point: `B2`, `E2`). The plot
+shows the probes, or all node voltages when there are none. The same file can be solved from the
+command line:
+
+Examples and SPICE netlists work too. Opening a `.cir` / `.sp` / `.net` file places the parts on
+the grid and connects them with net labels; unsupported lines are skipped with a warning.
+
+```bash
+elektro examples                               # list the example circuits
+elektro examples rc_lowpass                    # save it as rc_lowpass.json
+elektro tui circuit.cir                        # import a SPICE netlist into the editor
+elektro sim circuit.cir                        # solve a netlist directly
+elektro sim circuit.json                       # DC operating point + the analysis in the file
+elektro sim circuit.json -p "V(E2)" -p "I(B2,E2)"
+elektro sim rc.json -a ".tran 5m" --plot rc.svg --csv rc.csv
+elektro sim filter.json -a ".ac dec 50 10 1meg" --plot bode.svg
+elektro sim circuit.json --spice > circuit.cir   # SPICE netlist
+```
+
 ### Interactive mode, variables, history
 
 ```bash

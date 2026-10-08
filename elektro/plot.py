@@ -57,10 +57,11 @@ def _ticks(lo: float, hi: float) -> List[float]:
 class _Panel:
     """Bir çizim alanı: x (log veya doğrusal) ve y eksenleri."""
 
-    def __init__(self, x0, y0, w, h, xs, ys, log_x, y_label, x_label, x_unit, css):
+    def __init__(self, x0, y0, w, h, xs, ys, log_x, y_label, x_label, x_unit, css, series=None):
+        """series verilirse [(ys, renk), …] eğrilerin hepsi aynı eksene çizilir."""
         self.x0, self.y0, self.w, self.h = x0, y0, w, h
         self.log_x = log_x
-        finite = [y for y in ys if math.isfinite(y)]
+        finite = [y for y in ([v for s, _ in series for v in s] if series else ys) if math.isfinite(y)]
         lo, hi = (min(finite), max(finite)) if finite else (0, 1)
         if hi - lo < 1e-9:
             lo, hi = lo - 1, hi + 1
@@ -69,9 +70,11 @@ class _Panel:
         self.xlo, self.xhi = min(xs), max(xs)
         self.parts = []
         self._axes(y_label, x_label, x_unit)
-        pts = " ".join(f"{self.px(x):.1f},{self.py(max(y, self.ylo)):.1f}"
-                       for x, y in zip(xs, ys) if math.isfinite(y))
-        self.parts.append(f'<polyline class="{css}" points="{pts}"/>')
+        for s_ys, color in series or [(ys, None)]:
+            pts = " ".join(f"{self.px(x):.1f},{self.py(max(y, self.ylo)):.1f}"
+                           for x, y in zip(xs, s_ys) if math.isfinite(y))
+            attr = f'style="fill:none;stroke:{color};stroke-width:2"' if color else f'class="{css}"'
+            self.parts.append(f'<polyline {attr} points="{pts}"/>')
 
     def px(self, x):
         if self.log_x:
@@ -229,5 +232,39 @@ def spectrum(path: Path, title: str, freqs: Sequence[float], levels: Sequence[fl
         return path
     panel = _Panel(MARGIN_L, MARGIN_T, W - MARGIN_L - MARGIN_R, H - MARGIN_T - MARGIN_B, freqs, levels, True,
                    y_label, t("plot.freq"), "Hz", "line")
+    path.write_text(_svg(title, [panel]), encoding="utf-8")
+    return path
+
+
+PALETTE = ["#1f6feb", "#d9480f", "#2f9e44", "#ae3ec9", "#f08c00", "#0c8599", "#e03131", "#495057"]
+
+
+def multi(path: Path, title: str, xs: Sequence[float], series: Sequence[tuple], x_label: str, x_unit: str,
+          y_label: str, log_x: bool = False) -> Path:
+    """Aynı eksende birden çok eğri: series = [(ad, ys), …]."""
+    suffix = _check_suffix(path)
+    if suffix != ".svg":
+        plt = _matplotlib()
+        fig, ax = plt.subplots(figsize=(8, 5))
+        for name, ys in series:
+            (ax.semilogx if log_x else ax.plot)(xs, ys, label=name)
+        ax.set_xlabel(f"{x_label} ({x_unit})")
+        ax.set_ylabel(y_label)
+        ax.grid(True, which="both", alpha=0.4)
+        ax.legend()
+        ax.set_title(title)
+        fig.tight_layout()
+        fig.savefig(path)
+        plt.close(fig)
+        return path
+    colored = [(list(ys), PALETTE[i % len(PALETTE)]) for i, (_, ys) in enumerate(series)]
+    panel = _Panel(MARGIN_L, MARGIN_T, W - MARGIN_L - MARGIN_R, H - MARGIN_T - MARGIN_B, xs,
+                   colored[0][0] if colored else [0.0] * len(xs), log_x, y_label, x_label, x_unit, "line",
+                   series=colored)
+    x = MARGIN_L + 8
+    for (name, _), (_, color) in zip(series, colored):
+        panel.parts.append(f'<rect x="{x}" y="{MARGIN_T + 6}" width="10" height="10" fill="{color}"/>'
+                           f'<text x="{x + 14}" y="{MARGIN_T + 15}">{escape(name)}</text>')
+        x += 24 + 7 * len(name)
     path.write_text(_svg(title, [panel]), encoding="utf-8")
     return path

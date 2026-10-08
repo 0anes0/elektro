@@ -26,7 +26,7 @@ from elektro.i18n import (LANGUAGES, config_path, get_language, normalize, save_
                           set_language, t)
 from elektro.modules import datasheet as datasheet_mod
 from elektro.modules import (analog, digital, embedded, filters, installation, machines, ohm, opamp, passive,
-                             pinout, power, resistor, rf, signal, timer555, tools, wiring)
+                             pinout, power, resistor, rf, signal, simulate, timer555, tools, wiring)
 from elektro.ui import (console, err_console, fail, finish_output, json_mode, print_json, set_command,
                         set_json, set_report)
 
@@ -113,6 +113,8 @@ app.command(rich_help_panel=EMBEDDED, help=t("crc.help"))(embedded.crc)
 
 app.command(rich_help_panel=TOOLS, help=t("ds.help"))(datasheet_mod.datasheet)
 app.command(rich_help_panel=TOOLS, help=t("pin.help"))(pinout.pinout)
+app.command(rich_help_panel=TOOLS, help=t("sim.help"))(simulate.sim)
+app.command("examples", rich_help_panel=TOOLS, help=t("ex.help"))(simulate.examples_cmd)
 app.command(rich_help_panel=TOOLS, help=t("calc.help"))(tools.calc)
 app.command(rich_help_panel=TOOLS, help=t("unit.help"))(tools.unit)
 
@@ -166,6 +168,9 @@ MENU = [
         ("crc", "menu.crc", 'elektro crc "01 03 00 00 00 0A"'),
     ],
     [
+        ("tui", "menu.tui", "elektro tui"),
+        ("sim", "menu.sim", "elektro sim devre.json"),
+        ("examples", "menu.examples", "elektro examples rc_lowpass"),
         ("shell", "menu.shell", "elektro shell"),
         ("set / vars", "menu.vars", "elektro set vin 12  →  -v @vin"),
         ("history", "menu.history", "elektro history"),
@@ -235,7 +240,7 @@ def main(
 
 
 # Geçmişe yazılmayan komutlar (yönetim komutları)
-NOT_RECORDED = {"history", "shell", "helpall", "manpage", "language", "languages", "lang", "update",
+NOT_RECORDED = {"history", "shell", "tui", "helpall", "manpage", "language", "languages", "lang", "update",
                 "set", "unset", "vars"}
 
 
@@ -473,6 +478,18 @@ def shell():
             readline.write_history_file(hist)
         except OSError:
             pass
+
+
+# --- terminal arayüzü --------------------------------------------------------------------
+
+@app.command(rich_help_panel=TOOLS, help=t("tui.help"))
+def tui(file: Optional[Path] = typer.Argument(None, exists=True, dir_okay=False, help=t("tui.arg"))):
+    try:
+        from elektro.tui import run_app
+    except ImportError:
+        fail(t("tui.need_textual", pip=f"{sys.executable} -m pip install textual"))
+    set_command(None)
+    run_app(file)
 
 
 # --- language ------------------------------------------------------------------------

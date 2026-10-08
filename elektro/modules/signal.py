@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import cmath
+import importlib.util
 import math
 from pathlib import Path
 from typing import Callable, List, Optional
@@ -299,10 +300,9 @@ MAX_POINTS = 1 << 18
 def spectrum_of(x: List[float], fs: float, window: str = "hann") -> dict:
     """Pencereli genlik spektrumu. Genlikler tepe değeridir (sinüs için A)."""
     n = len(x)
-    try:
-        import numpy  # noqa: F401
+    if importlib.util.find_spec("numpy") is not None:       # numpy varsa her uzunluk olur
         use = min(n, MAX_POINTS * 4)
-    except ImportError:
+    else:
         use = 1 << (min(n, MAX_POINTS).bit_length() - 1)      # 2'nin kuvveti
     x = x[:use]
     mean = sum(x) / use

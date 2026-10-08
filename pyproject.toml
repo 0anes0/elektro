@@ -16,6 +16,7 @@ dependencies = [
     "rich>=13.0",
     "requests>=2.28",
     "beautifulsoup4>=4.11",
+    "textual>=0.47",
 ]
 keywords = ["electronics", "engineering", "cli", "terminal", "rf", "circuit", "datasheet"]
 classifiers = [

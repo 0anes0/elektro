@@ -81,6 +81,92 @@ elektro motor -p 7.5k --rpm 1450 --copy      # çıktıyı panoya kopyala
 `--report` ile terminalde normal çıktı da görünür; her komut, çalıştırılan komut satırıyla birlikte
 dosyaya eklenir. `--plot` ile kaydedilen grafikler Markdown raporuna resim olarak girer.
 
+### Terminal arayüzü (TUI)
+
+```bash
+elektro tui
+```
+
+Soldaki ağaçtan (ya da `Ctrl+F` ile arayarak) bir komut seç; seçenekleri form olarak açılır, komut
+satırı sen yazdıkça oluşur. `Enter` / `Ctrl+R` çalıştırır, sonuç alttaki panelde renkli görünür.
+Komut satırına istediğin `elektro` komutunu doğrudan da yazabilirsin.
+
+| Tuş | İş |
+|---|---|
+| `F2` / `F3` / `F4` | Hesaplar / Devre / Geçmiş sekmesi |
+| `Ctrl+R` | Çalıştır |
+| `Ctrl+F` | Komut ara |
+| `Ctrl+L` | Çıktıyı temizle |
+| `Ctrl+Q` | Çık |
+
+**Geçmiş** sekmesinde bir satıra `Enter` basınca komut yeniden yüklenir.
+
+### Devre editörü ve simülatör
+
+`elektro tui devre.json` ya da arayüzde `F3`: klavyeyle şema çiz, simüle et, sonucu grafikte gör.
+Simülatör elektro'nun kendi çözücüsüdür (düğüm analizi, ek kurulum gerektirmez).
+
+```
+     A   B   C   D   E   F
+  1  ·   ·   ·   ·   ·   ·
+          5V        454.5mV
+  2  ·   ●─[R1 10k]──●   ·
+         +           │
+  3  [V1 5V]     [R2 1k]
+         │           │
+  4  ·   ●───────────●   ·
+       [GND]
+```
+
+| Tuş | İş |
+|---|---|
+| `r` `c` `l` `v` `i` `g` | direnç, kondansatör, bobin, gerilim/akım kaynağı, toprak koy |
+| `d` `q` `f` `u` | diyot, BJT, MOSFET, op-amp koy |
+| `n` | düğüm etiketi (ör. `VCC`, `OUT`): aynı adlı noktalar kablosuz bağlıdır, probe'da `V(OUT)` |
+| `Ctrl+E` | hazır örnek devreler (bölücü, filtreler, doğrultucular, transistör ve op-amp devreleri) |
+| `w` | kablo: imleci gezdir, `Enter` köşe koyar, `Esc` bitirir |
+| `e` / `Enter` | değeri değiştir (`4k7`, `100n`; kaynakta `SINE(0 1 1k)`, `PULSE(0 5 0 1u 1u 0.5m 1m)`, `AC 1`) |
+| `Ctrl+R` · `m` · `x` · `Ctrl+Z` | döndür · taşı · sil · geri al |
+| `p` | probe: noktada gerilim `V(C3)`, elemanda akım `I(R1)` |
+| `a` … `a` | iki düğüm arası akım `I(C1,C10)` |
+| `o` … `o` | iki nokta arası eşdeğer direnç `R(A1,D1)` (yalnız dirençli devrelerde de çalışır) |
+| `P` | probe yaz: `V(C3,E7)`, `P(R1)`, transistör ucu `I(Q1.B)` … |
+| `s` | analiz: `.tran 10m`, `.ac dec 100 10 100k`, `.dc V1 0 5 0.1` (komut satırı + form) |
+| `F5` | çöz; sonra her değişiklikte kendiliğinden yeniden çözülür |
+| `F6` · `Tab` | grafik boyutu · grafiğe geç (`←`/`→` imleç, `m` genlik/faz) |
+| `Ctrl+S` · `Ctrl+O` · `Ctrl+N` | kaydet · aç · yeni |
+
+Yarı iletkenlerde değer, model adıdır (değiştirmek için `e`); ardından parametre de yazılabilir:
+
+| Eleman | Modeller | Örnek |
+|---|---|---|
+| Diyot | 1N4148, 1N4007, 1N5819, LED, LED-GREEN, LED-BLUE, LED-WHITE, BZX3V3, BZX5V1, BZX12 | `1N4148`, `IS=1e-14 N=1.8` |
+| BJT | 2N2222, 2N3904, BC547 (NPN) · 2N3906, BC557 (PNP) | `2N2222 BF=150` |
+| MOSFET | 2N7000, IRFZ44N (N) · BS250, IRF9540 (P) | `NMOS VTO=2 KP=0.5` |
+| Op-amp | ideal, LM358, LM741, TL072 + çıkış sınırı | `TL072 ±15`, `LM358 0..5` |
+
+Doğrusal olmayan elemanlar Newton-Raphson yöntemiyle çözülür (diyot: Shockley + kırılma, BJT:
+Ebers-Moll + Early, MOSFET: seviye-1, op-amp: GBW'li tek kutup + ray sınırı). Jonksiyon
+kapasiteleri modellenmez; sonuçlar ön tasarım içindir.
+
+Düğümler Excel hücreleri gibi adlandırılır (sol üst noktalarının adresi: `B2`, `E2`). Grafikte
+probe'lar çizilir; hiç probe yoksa tüm düğüm gerilimleri. Aynı dosya terminalden de çözülür:
+
+Örnekler ve SPICE netlist'leri de kullanılabilir. Bir `.cir` / `.sp` / `.net` dosyası açılınca
+elemanlar ızgaraya dizilir ve düğüm etiketleriyle bağlanır; desteklenmeyen satırlar uyarıyla atlanır.
+
+```bash
+elektro examples                               # hazır örneklerin listesi
+elektro examples rc_lowpass                    # rc_lowpass.json olarak kaydet
+elektro tui devre.cir                          # SPICE netlist'ini şemaya aktar
+elektro sim devre.cir                          # netlist'i doğrudan çöz
+elektro sim devre.json                         # DC çalışma noktası + dosyadaki analiz
+elektro sim devre.json -p "V(E2)" -p "I(B2,E2)"
+elektro sim rc.json -a ".tran 5m" --plot rc.svg --csv rc.csv
+elektro sim filtre.json -a ".ac dec 50 10 1meg" --plot bode.svg
+elektro sim devre.json --spice > devre.cir     # SPICE netlist'i
+```
+
 ### Etkileşimli mod, değişkenler, geçmiş
 
 ```bash

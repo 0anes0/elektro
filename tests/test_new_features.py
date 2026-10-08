@@ -6,7 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from elektro.cli import app
-from elektro.modules import analog, datasheet, embedded, power, rf, tools, wiring
+from elektro.modules import datasheet, embedded, power, rf, tools, wiring
 from elektro.ui import set_json
 
 runner = CliRunner()
