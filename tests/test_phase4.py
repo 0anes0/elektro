@@ -319,3 +319,20 @@ def test_editor_labels_examples_and_import(tmp_path):
             ed.load(tmp_path / "ce.cir")
             assert ed.path.suffix == ".json" and ed.dirty and "ce.cir" in ed.message
     asyncio.run(scenario())
+
+
+def test_tui_theme_is_remembered():
+    from elektro import state
+
+    async def scenario(pick):
+        app = tui.ElektroApp()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            if pick:
+                app.theme = pick
+                await pilot.pause()
+            return app.theme
+
+    assert asyncio.run(scenario("nord")) == "nord"
+    assert state.get_setting("theme") == "nord"
+    assert asyncio.run(scenario(None)) == "nord"                      # yeniden açılışta geri gelir

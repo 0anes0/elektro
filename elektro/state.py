@@ -30,6 +30,22 @@ def _write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+# --- Ayarlar ---------------------------------------------------------------------------
+
+def get_setting(key: str) -> Optional[str]:
+    """config.json'daki tek bir ayar (ör. "theme"); yoksa None."""
+    value = _read_json(config_path()).get(key)
+    return value if isinstance(value, str) else None
+
+
+def set_setting(key: str, value: str) -> None:
+    path = config_path()
+    data = _read_json(path)
+    if data.get(key) != value:
+        data[key] = value
+        _write_json(path, data)
+
+
 # --- Değişkenler ----------------------------------------------------------------------
 
 def local_file(start: Optional[Path] = None) -> Optional[Path]:

@@ -199,6 +199,7 @@ class ElektroApp(App):
 
     def on_mount(self) -> None:
         self.sub_title = t("cli.help")
+        self._restore_theme()
         self.fill_tree("")
         table = self.query_one("#history-table", DataTable)
         table.add_columns("#", t("tui.col.time"), t("tui.col.command"))
@@ -209,6 +210,20 @@ class ElektroApp(App):
             self.action_show_tab("circuit")
         else:
             self.query_one("#commands", Tree).focus()
+
+    def _restore_theme(self) -> None:
+        """Ctrl+P'den seçilen tema config.json'a yazılır ve sonraki açılışta geri yüklenir.
+        (Tema desteği Textual 0.86 ile geldi; daha eski sürümde sessizce atlanır.)"""
+        saved = state.get_setting("theme")
+        if saved and saved in getattr(self, "available_themes", {}):
+            self.theme = saved
+        signal = getattr(self, "theme_changed_signal", None)
+        if signal is not None:
+            signal.subscribe(self, self._save_theme)
+
+    def _save_theme(self, theme) -> None:
+        with contextlib.suppress(OSError):
+            state.set_setting("theme", theme.name)
 
     # --- komut ağacı ---
     def fill_tree(self, query: str) -> None:
