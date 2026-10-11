@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from types import SimpleNamespace
 
 import pytest
 from typer.testing import CliRunner
@@ -163,17 +164,72 @@ def test_sim_cli_reads_spice(tmp_path):
 
 # --- örnekler --------------------------------------------------------------------------------
 
+def _context(c):
+    """Örnek kontrol fonksiyonlarının beklediği bağlam: op, sweep, r{probe: değer}, t{iz: değerler}."""
+    result = dc_operating_point(c) if c.has_source() else None
+    sweep = run_analysis(c, c.analysis) if (c.analysis and c.has_source()) else None
+    return SimpleNamespace(op=result, sweep=sweep,
+                           r={r.expr: r.value for r in prb.read_all(c, result)},
+                           t={tr.expr: tr.values for tr in prb.traces(c, sweep)} if sweep else {})
+
+
+def _drawing_problems(c):
+    """Her etiket çizimde bozulmadan durmalı, her bileşen ucu bağlantı karakteri olarak görünmeli."""
+    from elektro.circuit import render as rnd
+    labels, canvas = [], {}
+    label, lines = rnd._Canvas.label, rnd._Canvas.lines
+
+    def spy_label(self, col, row, text, style):
+        labels.append((col, row, text))
+        return label(self, col, row, text, style)
+
+    def spy_lines(self):
+        canvas["cv"] = self
+        return lines(self)
+
+    rnd._Canvas.label, rnd._Canvas.lines = spy_label, spy_lines
+    try:
+        rnd.render(c, rnd.View(width=220, height=60))
+    finally:
+        rnd._Canvas.label, rnd._Canvas.lines = label, lines
+    cv = canvas["cv"]
+    bad = [text for col, row, text in labels
+           if "".join(cv.cells.get((col + i, row), (" ", ""))[0] for i in range(len(text))) != text]
+    bad += [f"{comp.ref or comp.kind}@{p}" for comp in c.components for p in comp.pins()
+            if cv.cells.get(cv.pos(p), (" ", ""))[0] not in "●┼├┤┬┴│─┌┐└┘╢╟╤╧║"]
+    return bad
+
+
 @pytest.mark.parametrize("name", examples.names())
-def test_every_example_solves_cleanly(name):
+def test_every_example(name):
+    ex = examples.REGISTRY[name]
+    for text in (ex.title, ex.desc, examples.FOLDERS["/".join(ex.folder)]):
+        assert set(text) == {"en", "tr", "de", "ru"} and all(v.strip() for v in text.values())
     c = examples.build(name)
     assert min(x.x for x in c.components) == 2                     # etiketler kenara taşmasın
-    has_source = any(x.kind in ("V", "I") for x in c.components)
-    result = dc_operating_point(c) if has_source else None
-    assert result is None or not result.warnings
-    assert not [r.error for r in prb.read_all(c, result) if r.error]
-    if c.analysis:
-        sweep = run_analysis(c, c.analysis)
-        assert not [tr.error for tr in prb.traces(c, sweep) if tr.error]
+    assert max(x.x for x in c.components) <= 26 and max(x.y for x in c.components) <= 16
+    refs = [x.ref for x in c.components if x.is_part]
+    assert len(refs) == len(set(refs))
+    assert not _drawing_problems(c)
+    ctx = _context(c)
+    assert ctx.op is None or not ctx.op.warnings
+    assert not [r.error for r in prb.read_all(c, ctx.op) if r.error]
+    if ctx.sweep is not None:
+        assert not [tr.error for tr in prb.traces(c, ctx.sweep) if tr.error]
+    if ex.check:
+        ex.check(ctx)                                               # fiziksel beklenti (assert)
+
+
+def test_example_tree():
+    folders = [path for path, _ in examples.tree()]
+    assert folders == examples.FOLDER_ORDER and len(folders) == len(set(folders))
+    assert all(path.rpartition("/")[0] in ("", *folders) for path in folders)
+    assert sum(len(keys) for _, keys in examples.tree()) == len(examples.names()) >= 80
+    # eski adlar (kayıtlı dosyalar, belgeler) hâlâ geçerli
+    for key in ("divider", "bridge", "rc_charge", "rc_lowpass", "rlc_bandpass", "half_wave", "bridge_rectifier",
+                "zener", "led_driver", "common_emitter", "mosfet_switch", "non_inverting", "inverting",
+                "integrator", "comparator"):
+        assert key in examples.REGISTRY
 
 
 @pytest.mark.parametrize("name,expr,check", [
@@ -202,9 +258,10 @@ def test_example_physics():
 
 def test_examples_cli(tmp_path):
     out = runner.invoke(cli.app, ["examples"], env={"COLUMNS": "120"})
-    assert out.exit_code == 0 and "rc_lowpass" in out.output
+    assert out.exit_code == 0 and "rc_lowpass" in out.output and "wien_bridge" in out.output
     data = json.loads(runner.invoke(cli.app, ["--json", "examples"]).output)
     assert len(data) == len(examples.names())
+    assert {"name", "folder", "title", "description"} <= set(data[0])
     out = runner.invoke(cli.app, ["examples", "zener", "-o", str(tmp_path / "z.json")])
     assert out.exit_code == 0
     assert Circuit.load(tmp_path / "z.json").analysis == ".dc V1 0 15 0.1"
@@ -212,6 +269,12 @@ def test_examples_cli(tmp_path):
 
 
 # --- editör ------------------------------------------------------------------------------------
+
+def _walk(node):
+    for child in node.children:
+        yield child
+        yield from _walk(child)
+
 
 def test_editor_labels_examples_and_import(tmp_path):
     (tmp_path / "ce.cir").write_text(CE)
@@ -236,9 +299,15 @@ def test_editor_labels_examples_and_import(tmp_path):
             assert ed.circuit.probes == ["V(OUT)"]
             await pilot.press("ctrl+e")
             await pilot.pause()
-            options = app.screen.query_one("#examples")
-            while options.get_option_at_index(options.highlighted).id != "divider":
-                await pilot.press("down")
+            tree = app.screen.query_one("#ex-tree")
+            await pilot.press("enter")                                 # ilk klasörü (Temel) aç
+            await pilot.pause()
+            node = next(n for n in _walk(tree.root) if n.data == "divider")
+            node.parent.expand()
+            await pilot.pause()
+            tree.move_cursor(node)
+            await pilot.pause()
+            assert "12" in str(app.screen.query_one("#ex-text").render())   # açıklama paneli
             await pilot.press("enter")
             await pilot.pause()
             await app.workers.wait_for_complete()

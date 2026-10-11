@@ -24,9 +24,8 @@ def _scales(a: List[list]):
     büyük katsayılar, boşta kalan bir girişin GMIN'li (1e-12) satırını "tekil" göstermesin.
     Gerçek tekillik (gerilim kaynağı döngüsü) sıfıra çok yakın bir pivot verir ve yine yakalanır.
     """
-    n = len(a)
-    cols = [max((abs(a[r][c]) for r in range(n)), default=1.0) or 1.0 for c in range(n)]
-    rows = [max((abs(v) for v in row), default=1.0) or 1.0 for row in a]
+    cols = [max(map(abs, col), default=1.0) or 1.0 for col in zip(*a)]
+    rows = [max(map(abs, row), default=1.0) or 1.0 for row in a]
     return rows, cols
 
 
@@ -41,11 +40,14 @@ def solve(a: List[list], b: list) -> list:
             raise CircuitError(t("ckt.singular"))
         m[col], m[pivot] = m[pivot], m[col]
         rows[col], rows[pivot] = rows[pivot], rows[col]
+        prow = m[col]
+        nz = [c for c in range(col, n + 1) if prow[c]]    # MNA matrisi seyrek: yalnız dolu sütunlar
         for r in range(col + 1, n):
-            f = m[r][col] / m[col][col]
-            if f:
-                for c in range(col, n + 1):
-                    m[r][c] -= f * m[col][c]
+            mr = m[r]
+            if mr[col]:
+                f = mr[col] / prow[col]
+                for c in nz:
+                    mr[c] -= f * prow[c]
     x = [0.0] * n
     for r in range(n - 1, -1, -1):
         x[r] = (m[r][n] - sum(m[r][c] * x[c] for c in range(r + 1, n))) / m[r][r]
@@ -85,6 +87,10 @@ def check(circuit: Circuit) -> List[str]:
 
 
 MAX_NEWTON = 150
+TRAN_NEWTON = 60                # zaman adımında: yakınsamazsa adım bölünür, uzun denemeye gerek yok
+JUMP_SPLIT = 4                  # hızlı geçişte adım en çok 2⁴ parçaya inceltilir (doğruluk için yeter)
+GMIN_DEPTH = 3                  # zaman adımı bu kadar bölündükten sonra gmin adımlama devreye girer
+DAMP_AFTER = 30                 # bu kadar yinelemeden sonra Newton adımı yarıya indirilir
 
 
 class System:
@@ -241,7 +247,7 @@ class System:
         return {"0": zero, **{n: x[self.index[n]] for n in self.nodes if ":" not in n}}
 
     # --- Newton-Raphson ---
-    def newton(self, base_a, base_b, x0) -> List[float]:
+    def newton(self, base_a, base_b, x0, max_iter: int = MAX_NEWTON) -> List[float]:
         if not self.nonlinear:
             a = [row[:] for row in base_a]
             b = list(base_b)
@@ -249,12 +255,16 @@ class System:
             return solve(a, b)
         x = list(x0)
         loose_since = None
-        for it in range(MAX_NEWTON):
+        for it in range(max_iter):
             a = [row[:] for row in base_a]
             b = list(base_b)
             limited = self.stamp_devices(a, b, x)
             x_new = solve(a, b)
             pairs = list(zip(x_new, x))
+            if it >= DAMP_AFTER and not limited:
+                # Uzun süren yineleme genelde iki nokta arasında gidip gelir (op-amp ray
+                # bükümünde, pozitif geri beslemenin eşiğinde): yarım adım döngüyü kırar.
+                x_new = [o + 0.5 * (n - o) for n, o in pairs]
             x = x_new
             if limited:
                 continue
@@ -271,6 +281,31 @@ class System:
             else:
                 loose_since = None
         raise CircuitError(t("ckt.no_converge"))
+
+    def newton_gmin(self, base_a, base_b, x0, max_iter: int = MAX_NEWTON) -> List[float]:
+        """Newton yakınsamazsa gmin adımlama: her düğümden toprağa büyük bir iletkenlik ekleyip
+        (çözüm tek ve kolay bulunur) adım adım küçülterek çözümü takip eder.
+
+        Pozitif geri beslemeli devrelerde (multivibratör, Schmitt tetikleyici) anahtarlama anında
+        eski çözüm kaybolur ve yenisi Newton'un ulaşamayacağı kadar uzakta kalabilir; SPICE de
+        bu durumda aynı yöntemi kullanır.
+        """
+        try:
+            return self.newton(base_a, base_b, x0, max_iter)
+        except CircuitError:
+            if not self.nonlinear:
+                raise
+        x = list(x0)
+        for exp in range(2, 13):
+            g = 10.0 ** -exp
+            a = [row[:] for row in base_a]
+            for n in self.nodes:
+                a[self.index[n]][self.index[n]] += g
+            try:
+                x = self.newton(a, base_b, x, max_iter)
+            except CircuitError:
+                continue
+        return self.newton(base_a, base_b, x, max_iter)
 
     # --- DC ---
     def dc_matrix(self, values: Dict[str, float], scale: float = 1.0):
@@ -291,7 +326,7 @@ class System:
             return []
         a, b = self.dc_matrix(values)
         try:
-            return self.newton(a, b, x0 or [0.0] * self.size)
+            return self.newton_gmin(a, b, x0 or [0.0] * self.size)
         except CircuitError:
             if not self.nonlinear:
                 raise
@@ -442,12 +477,29 @@ def _collect(sys_: System, rows: List[tuple], kind: str, xs: List[float], unit: 
 MAX_TRAN_POINTS = 20000
 
 
+def _internal(key: str) -> bool:
+    """Op-amp kutbu gibi modelin iç kondansatörü ("U1:p"): geri Euler ile tümlenir.
+
+    Doyumdaki op-amp'ta bu düğüm çok serttir; trapez yöntemi orada adımdan adıma salınır.
+    """
+    return ":" in key
+
+
+NOISE = 1e-6          # başlangıçta kondansatörlere verilen küçük "gürültü" (V)
+MAX_SPLIT = 12        # Newton yakınsamazsa adım en fazla 2¹² parçaya bölünür
+
+
 def transient(circuit: Circuit, tstop: float, tstep: float = 0.0, label: str = "") -> Sweep:
     """Zaman analizi: başlangıç DC çalışma noktası, sonra sabit adımla trapez yöntemi.
 
     Kondansatör ve bobinler eşdeğer iletkenlik + akım kaynağı (companion model) olarak yazılır.
     Doğrusal devrede matris yalnızca iki kez (ilk adım geri Euler, sonrası trapez) ayrıştırılır;
-    diyot/transistör varsa her adımda Newton yinelemesi yapılır.
+    diyot/transistör varsa her adımda Newton yinelemesi yapılır. Ani anahtarlamada Newton bir
+    adımda yakınsamazsa o adım otomatik olarak küçük parçalara bölünür (çıktı ızgarası aynı kalır).
+
+    Osilatörler: DC çalışma noktası kararsız bir denge olabilir (simetrik multivibratör, Schmitt
+    tetikleyicili osilatör). Gerçek devrede gürültü salınımı başlatır; burada da her kondansatöre
+    mikrovolt düzeyinde sabit bir başlangıç farkı verilir. Kararlı devrelerde etkisi ölçülemez.
     """
     sys_ = System(circuit)
     h = tstep if tstep else tstop / 1000
@@ -456,37 +508,38 @@ def transient(circuit: Circuit, tstop: float, tstep: float = 0.0, label: str = "
         steps = MAX_TRAN_POINTS
         h = tstop / steps
     inds = [c for c in sys_.parts if c.kind == "L"]
+    linear = not sys_.nonlinear and not sys_.opamps
+    cache: Dict[tuple, object] = {}
 
-    def base(method: str):
-        a = sys_.matrix()
-        k = 2.0 if method == "trap" else 1.0
-        sys_.stamp_linear(a)
-        for _, n1, n2, cap in sys_.caps:
-            sys_.stamp_g(a, n1, n2, k * cap / h)
-        for c in inds:
-            a[sys_.row[c.ref]][sys_.row[c.ref]] -= k * sys_.values[c.ref] / h
-        return a
+    def matrix(method: str, hh: float):
+        key = (method, hh)
+        if key not in cache:
+            a = sys_.matrix()
+            k = 2.0 if method == "trap" else 1.0
+            sys_.stamp_linear(a)
+            for ck, n1, n2, cap in sys_.caps:
+                sys_.stamp_g(a, n1, n2, (1.0 if _internal(ck) else k) * cap / hh)
+            for c in inds:
+                a[sys_.row[c.ref]][sys_.row[c.ref]] -= k * sys_.values[c.ref] / hh
+            cache[key] = lu_factor(a) if linear else a
+        return cache[key]
 
     # t = 0: DC çalışma noktası (kondansatör açık, bobin kısa)
     x = sys_.dc()
     src0 = {ref: src.dc_value() for ref, src in sys_.sources.items()}
     allv = sys_.all_voltages(x)
-    vc = {key: allv[n1] - allv[n2] for key, n1, n2, _ in sys_.caps}
-    ic = {key: 0.0 for key, *_ in sys_.caps}
-    il = {c.ref: x[sys_.row[c.ref]] for c in inds}
-    vl = {c.ref: 0.0 for c in inds}
-    rows = [(x, src0, dict(ic))]
-    times = [0.0]
-    mats, lus = {}, {}
-    linear = not sys_.nonlinear and not sys_.opamps
-    for step in range(1, steps + 1):
-        time = min(step * h, tstop)
-        method = "be" if step == 1 else "trap"
-        if method not in mats:
-            mats[method] = base(method)
-            if linear:
-                lus[method] = lu_factor(mats[method])
+    state = {
+        "vc": {key: allv[n1] - allv[n2] + NOISE * (1 + 0.1 * k) * (-1) ** k
+               for k, (key, n1, n2, _) in enumerate(sys_.caps)},
+        "ic": {key: 0.0 for key, *_ in sys_.caps},
+        "il": {c.ref: x[sys_.row[c.ref]] for c in inds},
+        "vl": {c.ref: 0.0 for c in inds},
+    }
+
+    def step(time: float, hh: float, method: str, x_prev, depth: int = 0):
+        """Bir adım; başarılıysa (x, kaynak değerleri, yeni durum)."""
         k = 2.0 if method == "trap" else 1.0
+        trap = method == "trap"
         b = [0.0] * sys_.size
         values = {ref: src.at(time) for ref, src in sys_.sources.items()}
         for c in sys_.parts:
@@ -494,26 +547,88 @@ def transient(circuit: Circuit, tstop: float, tstep: float = 0.0, label: str = "
                 sys_.inject(b, *sys_.pins[c.ref], values[c.ref])
             elif c.kind == "V":
                 b[sys_.row[c.ref]] = values[c.ref]
+        vc, ic, il, vl = state["vc"], state["ic"], state["il"], state["vl"]
         for key, n1, n2, cap in sys_.caps:
-            g = k * cap / h
-            ieq = g * vc[key] + (ic[key] if method == "trap" else 0.0)
-            sys_.inject(b, n1, n2, -ieq)              # eşdeğer kaynak n1'e akım verir
+            tr = trap and not _internal(key)
+            g = (2.0 if tr else 1.0) * cap / hh
+            sys_.inject(b, n1, n2, -(g * vc[key] + (ic[key] if tr else 0.0)))   # eşdeğer kaynak
         for c in inds:
-            req = k * sys_.values[c.ref] / h
-            b[sys_.row[c.ref]] = -req * il[c.ref] - (vl[c.ref] if method == "trap" else 0.0)
-        x = lu_solve(lus[method], b) if linear else sys_.newton(mats[method], b, x)
-        allv = sys_.all_voltages(x)
+            req = k * sys_.values[c.ref] / hh
+            b[sys_.row[c.ref]] = -req * il[c.ref] - (vl[c.ref] if trap else 0.0)
+        m = matrix(method, hh)
+        if linear:
+            x_new = lu_solve(m, b)
+        elif depth >= GMIN_DEPTH:                         # adım küçüldüyse artık gmin adımlama da denenir
+            x_new = sys_.newton_gmin(m, b, x_prev, TRAN_NEWTON)
+        else:                                             # önce ucuz yol: başarısızsa adım bölünür
+            x_new = sys_.newton(m, b, x_prev, TRAN_NEWTON)
+        av = sys_.all_voltages(x_new)
+        new = {"vc": {}, "ic": {}, "il": {}, "vl": {}}
         for key, n1, n2, cap in sys_.caps:
-            v_new = allv[n1] - allv[n2]
-            g = k * cap / h
-            ic[key] = g * (v_new - vc[key]) - (ic[key] if method == "trap" else 0.0)
-            vc[key] = v_new
+            v_new = av[n1] - av[n2]
+            tr = trap and not _internal(key)
+            new["ic"][key] = (2.0 if tr else 1.0) * cap / hh * (v_new - vc[key]) - (ic[key] if tr else 0.0)
+            new["vc"][key] = v_new
         for c in inds:
             n1, n2 = sys_.pins[c.ref]
-            il[c.ref] = x[sys_.row[c.ref]]
-            vl[c.ref] = allv[n1] - allv[n2]
-        rows.append((x, values, dict(ic)))
-        times.append(time)
+            new["il"][c.ref] = x_new[sys_.row[c.ref]]
+            new["vl"][c.ref] = av[n1] - av[n2]
+        return x_new, values, new
+
+    split = [False]
+    node_rows = range(len(sys_.nodes))
+    scale = [max((abs(x[i]) for i in node_rows), default=0.0)]
+
+    last = [None]                                     # son kabul edilen adımın değişimi
+
+    def jumped(x_old, x_new) -> bool:
+        """Bir adımda düğüm gerilimi çok değişti mi (anahtarlama, osilatör geçişi) ya da bir önceki
+        adımın tersine mi döndü (adımın çözemediği hızlı bir kararsızlığın izi: geri Euler onu
+        işaret değiştiren küçük bir salınım olarak gösterir)?"""
+        limit = 0.5 + 0.05 * scale[0]
+        tiny = 1e-9 * max(1.0, scale[0])
+        prev = last[0]
+        for i in node_rows:
+            d = x_new[i] - x_old[i]
+            if abs(d) > limit:
+                return True
+            if prev is not None and d * prev[i] < 0 and min(abs(d), abs(prev[i])) > tiny:
+                return True
+        return False
+
+    def advance(t0: float, hh: float, method: str, x_prev, depth: int = 0):
+        try:
+            x_new, values, new = step(t0 + hh, hh, method, x_prev, depth)
+        except CircuitError:
+            if linear or depth >= MAX_SPLIT:
+                raise
+            # adımı ikiye böl, geri Euler ile (sert geçişlerde sönümlü ve kararlı)
+            split[0] = True
+            x_mid, _ = advance(t0, hh / 2, "be", x_prev, depth + 1)
+            return advance(t0 + hh / 2, hh / 2, "be", x_mid, depth + 1)
+        if not linear and depth < JUMP_SPLIT and jumped(x_prev, x_new):
+            # hızlı geçiş: adımı inceltip geçişi gerçek hızıyla izle (SPICE'taki adım denetimi gibi).
+            # Alt adımlar geri Euler: trapez yöntemi akımı sıfıra zorlanan bobinde (kesintili iletim,
+            # diyot kesime girince) adım adım işaret değiştiren sahte bir salınım üretir; bunu
+            # inceltmek çözmez, geri Euler söndürür.
+            split[0] = True
+            x_mid, _ = advance(t0, hh / 2, "be", x_prev, depth + 1)
+            return advance(t0 + hh / 2, hh / 2, "be", x_mid, depth + 1)
+        state.update(new)
+        last[0] = [x_new[i] - x_prev[i] for i in node_rows]
+        scale[0] = max(scale[0], max((abs(x_new[i]) for i in node_rows), default=0.0))
+        return x_new, values
+
+    rows = [(x, src0, dict(state["ic"]))]
+    times = [0.0]
+    restart = True                                    # ilk adımda ve bölünen adımdan sonra geri Euler
+    for n in range(1, steps + 1):
+        t0 = (n - 1) * h
+        split[0] = False
+        x, values = advance(t0, min(h, tstop - t0), "be" if restart else "trap", x)
+        restart = split[0]
+        rows.append((x, values, dict(state["ic"])))
+        times.append(min(n * h, tstop))
     return _collect(sys_, rows, "tran", times, "s", label)
 
 

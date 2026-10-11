@@ -125,7 +125,7 @@ extra to install).
 | `r` `c` `l` `v` `i` `g` | place a resistor, capacitor, inductor, voltage/current source, ground |
 | `d` `q` `f` `u` | place a diode, BJT, MOSFET, op-amp |
 | `n` | net label (e.g. `VCC`, `OUT`): points with the same name are connected, probe as `V(OUT)` |
-| `Ctrl+E` | example circuits (divider, filters, rectifiers, transistor and op-amp circuits) |
+| `Ctrl+E` | example library: 93 circuits in folders, with a short explanation for students |
 | `w` | wire: move the cursor, `Enter` sets a corner, `Esc` ends |
 | `e` / `Enter` | change the value (`4k7`, `100n`; sources: `SINE(0 1 1k)`, `PULSE(0 5 0 1u 1u 0.5m 1m)`, `AC 1`) |
 | `Ctrl+R` · `m` · `x` · `Ctrl+Z` | rotate · move · delete · undo |
@@ -155,11 +155,20 @@ Nodes are named like spreadsheet cells (the address of their top-left point: `B2
 shows the probes, or all node voltages when there are none. The same file can be solved from the
 command line:
 
-Examples and SPICE netlists work too. Opening a `.cir` / `.sp` / `.net` file places the parts on
-the grid and connects them with net labels; unsupported lines are skipped with a warning.
+**Example library.** Like Falstad's circuit simulator, a ready-made library of 93 circuits sorted
+into folders: basics (Ohm, Kirchhoff, Thevenin, RC/RL/LC transients), AC circuits and resonance,
+passive filters, diodes (rectifiers, clippers, clampers, voltage multipliers, zener, diode logic),
+BJTs, MOSFETs (switches, amplifiers, CMOS inverter), op-amps (amplifiers, comparators and
+nonlinear circuits, active filters), oscillators (relaxation, function generator, Wien bridge,
+phase shift, ring) and power supplies (buck, boost, buck-boost, regulators, charge pump). Every
+circuit opens with its probes and analysis ready and comes with a short explanation in four
+languages, so students can open it, run it and change values to see what happens.
+
+SPICE netlists work too. Opening a `.cir` / `.sp` / `.net` file places the parts on the grid and
+connects them with net labels; unsupported lines are skipped with a warning.
 
 ```bash
-elektro examples                               # list the example circuits
+elektro examples                               # the example library as a folder tree
 elektro examples rc_lowpass                    # save it as rc_lowpass.json
 elektro tui circuit.cir                        # import a SPICE netlist into the editor
 elektro sim circuit.cir                        # solve a netlist directly

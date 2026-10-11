@@ -67,37 +67,63 @@ class PromptDialog(ModalScreen):
 
 
 class ExampleDialog(ModalScreen):
-    """Hazır örnekler: kategorilere ayrılmış liste; Enter açar, Esc vazgeçer."""
+    """Hazır örnekler (Falstad'daki gibi): solda klasör ağacı, sağda seçili devrenin açıklaması.
+    Enter klasörü açar/kapar ya da devreyi yükler, Esc vazgeçer."""
 
     BINDINGS = [Binding("escape", "cancel", show=False)]
     DEFAULT_CSS = """
     ExampleDialog { align: center middle; }
-    ExampleDialog > Vertical { width: 64; height: auto; max-height: 90%; border: round $accent;
-                               background: $panel; padding: 1 2; }
-    ExampleDialog OptionList { height: auto; max-height: 30; }
+    ExampleDialog > Vertical { width: 110; max-width: 96%; height: 90%; border: round $accent;
+                               background: $panel; padding: 0 1; }
+    ExampleDialog #ex-body { height: 1fr; }
+    ExampleDialog Tree { width: 46; height: 1fr; }
+    ExampleDialog #ex-info { width: 1fr; height: 1fr; padding: 0 1; }
     """
 
     def compose(self) -> ComposeResult:
-        from textual.widgets import OptionList
-        from textual.widgets.option_list import Option
+        from textual.containers import Horizontal, VerticalScroll
+        from textual.widgets import Static, Tree
         from elektro.circuit import examples
-        items = []
-        for cat in examples.CATEGORIES:
-            items.append(Option(Text(t(f"ex.cat.{cat}"), style="bold yellow"), disabled=True))
-            for name, (c, _) in examples.EXAMPLES.items():
-                if c == cat:
-                    items.append(Option(f"  {t(f'ex.{name}')}", id=name))
+        tree: Tree = Tree(t("menu.examples"), id="ex-tree")
+        tree.show_root = False
+        nodes = {"": tree.root}
+        for path, keys in examples.tree():
+            parent = nodes[path.rpartition("/")[0]]
+            node = parent.add(Text(examples.folder_name(path), style="bold yellow"), data=None)
+            nodes[path] = node
+            for key in keys:
+                node.add_leaf(examples.title(key), data=key)
+        n = len(examples.names())
         with Vertical():
-            yield Label(t("ex.title"))
-            yield OptionList(*items, id="examples")
+            yield Label(f"{t('ex.title')}   [dim]{t('ex.count', n=n, folders=len(examples.FOLDERS))}[/]")
+            with Horizontal(id="ex-body"):
+                yield tree
+                with VerticalScroll(id="ex-info"):
+                    yield Static("", id="ex-text")
 
     def on_mount(self) -> None:
-        options = self.query_one("#examples")
-        options.focus()
-        options.highlighted = 1
+        tree = self.query_one("#ex-tree")
+        tree.focus()
+        tree.cursor_line = 0
 
-    def on_option_list_option_selected(self, event) -> None:
-        self.dismiss(event.option.id)
+    def on_tree_node_highlighted(self, event) -> None:
+        from textual.widgets import Static
+        from elektro.circuit import examples
+        key = event.node.data
+        out = self.query_one("#ex-text", Static)
+        if key is None:
+            out.update(Text.assemble((str(event.node.label), "bold yellow"), "\n\n", (t("ex.folder_hint"), "dim")))
+            return
+        circuit = examples.REGISTRY[key].builder()
+        out.update(Text.assemble(
+            (examples.title(key), "bold"), "  ", (key, "dim cyan"), "\n\n",
+            examples.description(key), "\n\n",
+            (f"{t('ex.analysis')}: ", "dim"), circuit.analysis or ".op", "\n",
+            (f"{t('ex.probes')}: ", "dim"), ", ".join(circuit.probes) or "—"))
+
+    def on_tree_node_selected(self, event) -> None:
+        if event.node.data is not None:
+            self.dismiss(event.node.data)
 
     def action_cancel(self) -> None:
         self.dismiss(None)
@@ -500,7 +526,7 @@ class CircuitEditor(Widget, can_focus=True):
         self.changed()
 
     def run_simulation(self, quiet: bool = False) -> None:
-        if not any(c.kind in ("V", "I") for c in self.circuit.components):
+        if not self.circuit.has_source():
             # Kaynak yok: DC çözümün anlamı yok; yalnızca direnç probe'ları hesaplanır
             self.result, self.error = None, None
             if not quiet:
@@ -626,7 +652,7 @@ class CircuitEditor(Widget, can_focus=True):
             self.circuit = examples.build(name)
             self.path, self.dirty, self.result, self.error = Path(f"{name}.json"), True, None, None
             self.cursor, self.ox, self.oy = (2, 2), 0, 0
-            self.say(t("ckt.msg.example", title=t(f"ex.{name}")))
+            self.say(t("ckt.msg.example", title=examples.title(name)))
             self.action_simulate()                        # örnek açılınca hemen çöz
 
         self.app.push_screen(ExampleDialog(), done)

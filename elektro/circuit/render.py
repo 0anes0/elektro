@@ -266,6 +266,8 @@ def render(circuit: Circuit, view: View) -> List[Text]:
             for c in range(c1 + 1, c2):
                 cv.put(c, r1, "─", STYLE_WIRE)
             mid = (c1 + c2) // 2
+            if len(label) > c2 - c1 - 1:                  # uçları örtmesin: değeri at (değer bilgi panelinde)
+                label = f"[{comp.label().split(' ')[0]}]"
             cv.label(mid - len(label) // 2, r1, label, style)
             if comp.kind in ("V", "I"):
                 plus_col = c1 + 1 if comp.rot == 0 else c2 - 1

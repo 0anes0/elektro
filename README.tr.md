@@ -123,7 +123,7 @@ Simülatör elektro'nun kendi çözücüsüdür (düğüm analizi, ek kurulum ge
 | `r` `c` `l` `v` `i` `g` | direnç, kondansatör, bobin, gerilim/akım kaynağı, toprak koy |
 | `d` `q` `f` `u` | diyot, BJT, MOSFET, op-amp koy |
 | `n` | düğüm etiketi (ör. `VCC`, `OUT`): aynı adlı noktalar kablosuz bağlıdır, probe'da `V(OUT)` |
-| `Ctrl+E` | hazır örnek devreler (bölücü, filtreler, doğrultucular, transistör ve op-amp devreleri) |
+| `Ctrl+E` | örnek kütüphanesi: klasörlere ayrılmış 93 devre, öğrenciler için kısa açıklamalarıyla |
 | `w` | kablo: imleci gezdir, `Enter` köşe koyar, `Esc` bitirir |
 | `e` / `Enter` | değeri değiştir (`4k7`, `100n`; kaynakta `SINE(0 1 1k)`, `PULSE(0 5 0 1u 1u 0.5m 1m)`, `AC 1`) |
 | `Ctrl+R` · `m` · `x` · `Ctrl+Z` | döndür · taşı · sil · geri al |
@@ -152,11 +152,20 @@ kapasiteleri modellenmez; sonuçlar ön tasarım içindir.
 Düğümler Excel hücreleri gibi adlandırılır (sol üst noktalarının adresi: `B2`, `E2`). Grafikte
 probe'lar çizilir; hiç probe yoksa tüm düğüm gerilimleri. Aynı dosya terminalden de çözülür:
 
-Örnekler ve SPICE netlist'leri de kullanılabilir. Bir `.cir` / `.sp` / `.net` dosyası açılınca
-elemanlar ızgaraya dizilir ve düğüm etiketleriyle bağlanır; desteklenmeyen satırlar uyarıyla atlanır.
+**Örnek kütüphanesi.** Falstad'ın devre simülatöründeki gibi klasörlere ayrılmış 93 hazır devre:
+temel (Ohm, Kirchhoff, Thevenin, RC/RL/LC geçici rejim), AC devreleri ve rezonans, pasif
+filtreler, diyotlar (doğrultucular, kırpıcı, kenetleyici, gerilim katlayıcılar, zener, diyot
+lojiği), BJT'ler, MOSFET'ler (anahtarlar, yükselteçler, CMOS evirici), op-amp'lar (yükselteçler,
+karşılaştırıcılar ve doğrusal olmayan devreler, aktif filtreler), osilatörler (gevşemeli,
+fonksiyon üreteci, Wien köprüsü, faz kaydırmalı, halka) ve güç kaynakları (buck, boost,
+buck-boost, regülatörler, şarj pompası). Her devre probe'ları ve analiziyle hazır açılır ve dört
+dilde kısa bir açıklaması vardır: öğrenci açar, çalıştırır, değerleri değiştirip sonucu görür.
+
+SPICE netlist'leri de kullanılabilir. Bir `.cir` / `.sp` / `.net` dosyası açılınca elemanlar
+ızgaraya dizilir ve düğüm etiketleriyle bağlanır; desteklenmeyen satırlar uyarıyla atlanır.
 
 ```bash
-elektro examples                               # hazır örneklerin listesi
+elektro examples                               # örnek kütüphanesi (klasör ağacı)
 elektro examples rc_lowpass                    # rc_lowpass.json olarak kaydet
 elektro tui devre.cir                          # SPICE netlist'ini şemaya aktar
 elektro sim devre.cir                          # netlist'i doğrudan çöz

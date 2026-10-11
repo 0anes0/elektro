@@ -10,6 +10,7 @@ from typing import List, Optional
 
 import typer
 from rich.table import Table
+from rich.text import Text
 
 from elektro.circuit import probes as prb
 from elektro.circuit.model import Circuit, CircuitError
@@ -40,7 +41,7 @@ def sim(
             sys.stdout.write(circuit.to_spice(file.stem))
             return
         extra = [prb.normalize(x) for x in probe or []]
-        has_source = any(c.kind in ("V", "I") for c in circuit.components)
+        has_source = circuit.has_source()
         result = dc_operating_point(circuit) if has_source else None
         sweep = run_analysis(circuit, circuit.analysis) if has_source and circuit.analysis else None
     except CircuitError as e:
@@ -175,17 +176,22 @@ def examples_cmd(
 ):
     from elektro.circuit import examples
     if name is None:
-        tbl = Table(box=None, header_style="bold")
-        tbl.add_column("", style="cyan")
+        tbl = Table(box=None, header_style="bold", show_header=False)
+        tbl.add_column("", style="cyan", no_wrap=True)
         tbl.add_column("")
-        tbl.add_column("", style="dim")
-        for key, (cat, _) in examples.EXAMPLES.items():
-            tbl.add_row(key, t(f"ex.{key}"), t(f"ex.cat.{cat}"))
-        emit(tbl, [{"name": k, "category": c, "title": t(f"ex.{k}")} for k, (c, _) in examples.EXAMPLES.items()])
-        theory(t("ex.usage"))
+        rows = []
+        for path, keys in examples.tree():
+            depth = path.count("/")
+            tbl.add_row(Text("  " * depth + "▸ " + examples.folder_name(path), style="bold yellow"), "")
+            for key in keys:
+                tbl.add_row("  " * (depth + 1) + key, examples.title(key))
+                rows.append({"name": key, "folder": path, "title": examples.title(key),
+                             "description": examples.description(key)})
+        emit(tbl, rows)
+        theory(t("ex.count", n=len(rows), folders=len(examples.FOLDERS)) + "   ·   " + t("ex.usage"))
         return
     key = name.lower().replace("-", "_")
-    if key not in examples.EXAMPLES:
+    if key not in examples.REGISTRY:
         fail(t("ex.unknown", name=name, options=", ".join(examples.names())))
     path = output or Path(f"{key}.json")
     try:
@@ -193,4 +199,5 @@ def examples_cmd(
     except OSError as e:
         fail(str(e))
     console.print(f"[green]✓[/] {t('ex.saved', path=path)}")
+    console.print(f"[bold]{examples.title(key)}[/] — {examples.description(key)}", highlight=False)
     console.print(f"[dim]elektro tui {path}   ·   elektro sim {path}[/]")

@@ -268,6 +268,10 @@ class Circuit:
             return True
         return False
 
+    def has_source(self) -> bool:
+        """Çözülecek bir şey var mı: gerilim/akım kaynağı ya da kendi beslemesi (rayları) olan op-amp."""
+        return any(c.kind in ("V", "I", "U") for c in self.components)
+
     # --- düğümler ---
     def nets(self) -> Dict[Point, str]:
         """Her bağlantı noktasının düğüm adı. GND'ye bağlı düğüm '0'; diğerleri Excel gibi,
